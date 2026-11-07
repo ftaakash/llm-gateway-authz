@@ -1,7 +1,7 @@
 # Pilot 10 — GatewayAuthz: scope and defensive framing
 
 **Pilot of:** Paper A second boundary (D16 in [pilot 08 DECISIONS](../08-dsp-authfuzz/DECISIONS.md)), idea [10 GatewayAuthz](../../ideas/10-llm-gateway-authz/idea.md) · kill test: [idea 10](../../ideas/10-llm-gateway-authz/kill-test.md), as amended for Paper A in [idea 08 kill test, amendment 2026-11-03](../../ideas/08-dsp-authfuzz/kill-test.md)
-**Status:** Phase 0 signed off by the user 2026-11-08 (G9). Static reachability check and freeze of the six advisories pending (G4). No image pulled, no test written, no test run.
+**Status:** Phase 0 complete and signed off (user, 2026-11-08, G9). The six recall advisories R1–R6 are **frozen** (G4/G12, after the static reachability ranking; commit `2c4c9d0`). Independent review 1 passed (REVIEW-phases.md, `34afc6b`); its High items H1–H5 are settled here. Phase 1 (pulls, testbed) not started: no image pulled, no test written, no test run.
 **Timebox:** 3 weeks, ending **2026-11-29** (G11). One one-week extension only if decided before any result exists.
 
 ## What this pilot is

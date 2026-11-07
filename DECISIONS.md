@@ -15,3 +15,22 @@ Status values: **PROPOSED** = written by Claude, needs the user's yes; **RESOLVE
 | G9 | 2026-11-08 | **RESOLVED (user) — SCOPE.md signed off; pilot 08's standing download approval extends to pilot 10**: < 5 GB each from Docker Hub / GHCR, GitHub source clones of the projects under test, JDK/tooling installers, each logged in ENV.md. PyPI still **not** approved. Ask before any new source or any download ≥ 5 GB. | user (coordinator-relayed) | — |
 | G10 | 2026-11-08 | **RESOLVED (user) — commits of `pilots/10-llm-gateway-authz/` are pre-approved** under pilot 08's rules: author `ftaakash <gsaakash@outlook.com>`, real dates, no Co-Authored-By/Claude line, never force-push, nothing under `private/` tracked, no candidate findings in commit messages. **No public mirror**: no repo is created and nothing is pushed until the user decides. | user (coordinator-relayed) | — |
 | G11 | 2026-11-08 | **RESOLVED (user) — timebox 3 weeks, ending 2026-11-29.** One one-week extension is allowed only if decided before any result exists. | user (coordinator-relayed) | — |
+| G12 | 2026-11-08 | **The six recall advisories R1–R6 are FROZEN** (commit `2c4c9d0`) after the static reachability ranking in VERSIONS.md; no swap. R2's flip pair resolved by source read to `v1.83.7-stable`→`v1.83.8-nightly`. | Claude under G4 (user) | All six source-reachable + deterministic across 3 gateways; backups recorded, not selected. Post-freeze: an advisory unreachable at run time counts as not rediscovered, not substituted. |
+| G13 | 2026-11-08 | **Fix-specific oracle signatures frozen (review 1 H1)** — per-advisory FAIL mechanism and PASS refusal signature (status + error text/field, or mock-journal predicate) in VERSIONS.md "Oracle signatures". A non-matching refusal is INVALID, not PASS. | Claude (review 1 H1) | Prevents a vacuous PASS on R1 (rungs span many unrelated commits) and on R4/R6. |
+| G14 | 2026-11-08 | **R2 combining rule frozen (review 1 H2)** — the `org_admin` sub-cell is R2's recall verdict; `internal_user` is supporting evidence only. | Claude (review 1 H2) | org_admin has legitimate `/user/update` access, so self-elevation is the pure authorization flaw. |
+| G15 | 2026-11-08 | **R2 mainline predecessor pinned (review 1 H3)** — `v1.83.7-stable` is not a git ancestor of `v1.83.8-nightly`; rung **L0 `v1.83.6-nightly`** (digest in ENV; must FAIL) is pinned and run as a control so the flip is not read across a branch boundary alone. | Claude (review 1 H3) | — |
+
+## Carried into Phase 1 (review 1 items; settle before the phase-1 report)
+
+- **H4 — R6 mock control first.** Before the R6 cell counts, verify WireMock journals a dot-segment path
+  sent straight from the driver (not normalized/rejected pre-journal). If the mock drops it, R6 would
+  wrongly PASS on the affected rung. Record the control result in `env/`.
+- **M1 — R3 settlement timing.** Read "balance after" only once the settlement record exists (poll with a
+  bound, never a fixed sleep). FAIL = balance strictly increased.
+- **M2 — R5 precondition.** "A's task complete and A retrieves it" is polled with a bound, not a sleep.
+- **M3 — KC4 novelty check** logged at each phase boundary and before the report (a ≥3-gateway
+  authz/metering invariant paper appearing → re-run Gate B). Phase-0 boundary check: none found 2026-11-08.
+- **M4 — driver image.** Reuse pilot 08's driver image (bash+curl+jq). Installing jq via apk inside a new
+  image would be a new download source → ask the user first; do not add it unasked.
+- Low items L1–L4: see REVIEW-phases.md.
+- Phase-boundary review requests go to the review session **through the coordinator** (as in pilot 08).

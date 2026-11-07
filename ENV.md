@@ -14,15 +14,16 @@ GHCR LiteLLM images until pulled).
 
 | Rung | Tag | Used by | Digest |
 |---|---|---|---|
-| L1 | `v1.83.7-stable` | R2 (affected, candidate) | `sha256:af0152ca6dfb6703b35c0d4899effa9ac132bce9a4fbcbe1dc6ef145c100db26` |
-| L2 | `v1.83.8-nightly` | R2 (fixed by ancestry, candidate) | `sha256:085b1f79c4547f8e7abb46755e8a55ad96a8eaae5009cb74cfa37d9a0ec7f1e9` |
+| L0 | `v1.83.6-nightly` | R2 (mainline predecessor control; must FAIL — H3) | `sha256:2d4182e96d64df4a605cbfebd79ff8564c90bb026594feb70ab9952d7ae48f86` |
+| L1 | `v1.83.7-stable` | R2 (affected, FAIL) | `sha256:af0152ca6dfb6703b35c0d4899effa9ac132bce9a4fbcbe1dc6ef145c100db26` |
+| L2 | `v1.83.8-nightly` | R2 (fixed, PASS) | `sha256:085b1f79c4547f8e7abb46755e8a55ad96a8eaae5009cb74cfa37d9a0ec7f1e9` |
 | L3 | `v1.83.9-nightly` | R2 (advisory: affected) | `sha256:4148c2c806d028eb8b159fbdc022916eb068a34138a5f4a45b1384a39a3ef42c` |
 | L4 | `v1.83.10-stable` | R2 (advisory: fixed) | `sha256:6c82d338a60e7b273ae46bf1d8db814d2856ae010f96c44eeadde574d3893f76` |
 | L5 | `v1.83.13-nightly` | R1 (affected) | `sha256:2fc41eb21c717a5d5ff72b6e3c3f13ea9c7506f2457a6a1f41454fcfedd33a8d` |
 | L6 | `v1.83.14-stable` | R1 (fixed) | `sha256:c81eb79cd4333c6cfe374c0ec929110fd23f0ee5f7fd198855a6fbddc77b83ba` |
 
 R2's pair is frozen L1 (v1.83.7-stable, FAIL) -> L2 (v1.83.8-nightly, PASS) by the G5 source read; L3/L4 are extra PASS rungs and the advisory's own pair, also run.
-Tag commits: `v1.83.9-nightly` `850fe595ac54`, `v1.83.10-stable` `0db4158c56f6`, `v1.83.13-nightly`
+Tag commits: `v1.83.6-nightly` `9e4352afb42a`, `v1.83.9-nightly` `850fe595ac54`, `v1.83.10-stable` `0db4158c56f6`, `v1.83.13-nightly`
 `7b47dffefd88`, `v1.83.14-stable` `3d2b8fed3281` (GitHub API, 2026-11-08).
 
 ### new-api — `calciumion/new-api` (Docker Hub)

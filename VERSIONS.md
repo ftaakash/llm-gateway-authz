@@ -11,6 +11,28 @@ source reads only (GitHub clones, nothing executed).
 fixed image**, with the positive control holding on both. **Kill condition 3 (recall half):** ≥ **4 of 6**
 must flip FAIL→PASS exactly at the predicted version.
 
+## Oracle signatures per advisory (H1, review 1; frozen 2026-11-08)
+
+Each cell's verdict is decided by a **fix-specific signature**, not by "some check is missing". A FAIL
+must show the **advisory's own mechanism**; a PASS refusal must match the **signature taken from the fix
+diff** (status + error text/field, or the mock-journal predicate). A refusal that does not match the
+signature is **INVALID**, not PASS. Secrets/tokens are recorded only as booleans (present / absent);
+values are never logged. These are detection predicates, not payloads.
+
+| ID | FAIL (advisory mechanism shown) | PASS signature (from the fix) | INVALID if |
+|---|---|---|---|
+| R1 | an `internal_user`-created child key (naming an admin-only **read** route via `allowed_routes`, and separately via `key_type`→elevated bucket) actually reaches that route (2xx on a route the base role is gated from) | key creation or the route call refused **403** with body `Only proxy admins can set `allowed_routes` on a key` (direct field) **or** the post-`handle_key_type` re-check 403 (key_type path) | refusal text differs, or positive control fails (the same user can create a key with a **permitted** route and use it) |
+| R2 | after `POST /user/update` with `user_role=proxy_admin`, a re-read of `GET /user/info` shows `user_role == "proxy_admin"` | **403** detail `Only proxy admins can modify user roles.` **and** re-read role unchanged | role not re-read from `/user/info`, or the permitted-own-field positive control fails |
+| R3 | after a billed call carrying an out-of-range quantity field, the caller balance **strictly increased** (read **after** the settlement record exists, M1) | request refused **or** balance-after ≤ balance-before | no settlement record yet (must wait, not sleep), or the n=1 positive control did not bill |
+| R4 | a non-root **admin** `GET /api/user/` returns the **root** record with a **non-empty** `access_token` field (boolean only) | root record present in the list (positive control) **and** its `access_token` absent/empty (fix sets `json:"-"`) | root not in the returned list, or root has no access token set (precondition) |
+| R5 | user B's `GET /v1/videos/{A_task_id}/content` returns 200 with A's content **and** the mock journal shows an upstream fetch issued for **B's** request | B refused/404 **and** no journal fetch for B | A's own-content positive control fails, or A's task is not complete/retrievable (precondition, polled with a bound — M2) |
+| R6 | the mock journal records an upstream request whose path **escapes the `/…/responses/` prefix** (dot-segment resolved), carrying the operator dummy key | request refused (guard `invalid … for upstream url path`) **or** the journal path stays under the prefix | the legitimate-subpath positive control fails, or the mock did not journal the raw dot-segment path (H4 control must pass first) |
+
+**H2 — R2 combining rule (frozen).** R2 has two sub-cells. The **`org_admin`** sub-cell is R2's **recall
+verdict** (org_admin has legitimate `/user/update` access, so self-elevation is the pure authorization
+flaw). The **`internal_user`** sub-cell is **supporting evidence only** and never changes R2's FAIL→PASS
+verdict.
+
 ## Static reachability ranking (G4) — source reads only, nothing executed (2026-11-08)
 
 Each candidate was read at its affected and fixed tags from blobless GitHub clones under `build/src/`
@@ -66,18 +88,18 @@ A FAIL→PASS flip needs a fixing version, so one-api can only be a **current-re
 The third recall gateway proposed instead is **Sub2API** (Wei-Shaw/sub2api; actively maintained), whose
 only authorization-class advisory is GHSA-vrxq-qm4h-6hgg. Sub2API's other advisory (password-reset
 poisoning) is a generic web flaw and is not used. Hence the proposed split is **2 LiteLLM / 3 new-api /
-1 Sub2API**. This deviates from the idea-10 wording and needs the user's OK (G2/G3).
+1 Sub2API**. This deviates from the idea-10 wording; accepted by the user 2026-11-08 (G2/G3).
 
-## The proposed 6
+## The frozen 6 (FROZEN 2026-11-08, G4; ladders + reachability confirmed by the ranking above)
 
 | ID | Gateway | Advisory | Class | Affected rung (FAIL) | Fixed rung (PASS) | Mock needed? | Reachable with mocks |
 |---|---|---|---|---|---|---|---|
 | R1 | LiteLLM | CVE-2026-47101 · GHSA-qrc4-49gv-mv9m | scope escalation via key `allowed_routes` | `v1.83.13-nightly` | `v1.83.14-stable` | no (management API only) | expected |
 | R2 | LiteLLM | CVE-2026-47102 · GHSA-wpfp-gwwc-vwq6 | self role change via `/user/update` | `v1.83.7-stable` (source-confirmed; see note R2) | `v1.83.8-nightly` | no | reachable (source-confirmed) |
-| R3 | new-api | CVE-2026-71479 · GHSA-8r8v-xf7q-rcpr | metering: quantity overflow → negative charge | `v1.0.0-rc.17` | `v1.0.0-rc.18` | yes (billed relay call) | UNVERIFIED |
+| R3 | new-api | CVE-2026-71479 · GHSA-8r8v-xf7q-rcpr | metering: quantity overflow → negative charge | `v1.0.0-rc.17` | `v1.0.0-rc.18` | yes (billed relay call) | source-reachable (desk judgment; confirmed in phase 1) |
 | R4 | new-api | CVE-2026-64859 · GHSA-6x2c-phff-wx57 | role boundary: admin reads root access token | `v1.0.0-rc.6` | `v1.0.0-rc.7` | no | expected |
-| R5 | new-api | CVE-2026-30886 · GHSA-f35r-v9x5-r8mc | ownership: task_id IDOR in VideoProxy | `v0.11.4-alpha.1` | `v0.11.4-alpha.2` | yes (video task upstream) | UNVERIFIED |
-| R6 | Sub2API | CVE-2026-73079 · GHSA-vrxq-qm4h-6hgg | caller-supplied subpath spliced into operator upstream URL | `0.1.168` | `0.1.169` | yes (operator base URL → mock) | UNVERIFIED |
+| R5 | new-api | CVE-2026-30886 · GHSA-f35r-v9x5-r8mc | ownership: task_id IDOR in VideoProxy | `v0.11.4-alpha.1` | `v0.11.4-alpha.2` | yes (video task upstream) | source-reachable (desk judgment; confirmed in phase 1) |
+| R6 | Sub2API | CVE-2026-73079 · GHSA-vrxq-qm4h-6hgg | caller-supplied subpath spliced into operator upstream URL | `0.1.168` | `0.1.169` | yes (operator base URL → mock) | source-reachable (desk judgment; confirmed in phase 1) |
 
 Root-cause class across the set (idea 10 delta 3): R1, R5, R6 are "a caller-supplied identifier or
 field selects or widens a resource outside the caller's grant"; R2, R4 are role-boundary checks; R3 is
@@ -123,6 +145,12 @@ metering.
   a reader sees both; by the frozen oracle the measured flip is at 1.83.8-nightly. `v1.83.7-stable` is on
   the stable branch (diverged from the nightly line); the mainline rung just before `v1.83.8-nightly` is
   `v1.83.6-nightly`, which also lacks the guard.
+- **H3 (review 1): `v1.83.7-stable` is NOT a git ancestor of `v1.83.8-nightly`** (different branches), so
+  the FAIL→PASS flip is not read across a branch boundary alone. The frozen pair is kept, and the
+  **mainline predecessor `v1.83.6-nightly` (must also FAIL)** is pinned as rung **L0** in [ENV.md](ENV.md)
+  and run as a control. It lacks the role guard in source (tag commit `9e4352afb42a`, 2026-04-10).
+- **Recall verdict sub-cell (H2):** the `org_admin` sub-cell is R2's recall verdict; `internal_user` is
+  supporting evidence only (see "Oracle signatures per advisory").
 - **Assertion (sketch):** an `org_admin` (and separately an `internal_user`) updates their own record
   with `user_role=proxy_admin`; PASS = refused or role unchanged when re-read. Positive control: the
   same user can update a permitted own field. Role is re-read from `/user/info`, not inferred.
