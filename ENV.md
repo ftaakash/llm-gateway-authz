@@ -21,7 +21,7 @@ GHCR LiteLLM images until pulled).
 | L5 | `v1.83.13-nightly` | R1 (affected) | `sha256:2fc41eb21c717a5d5ff72b6e3c3f13ea9c7506f2457a6a1f41454fcfedd33a8d` |
 | L6 | `v1.83.14-stable` | R1 (fixed) | `sha256:c81eb79cd4333c6cfe374c0ec929110fd23f0ee5f7fd198855a6fbddc77b83ba` |
 
-R2's final pair is fixed by the pre-run source check in VERSIONS.md (G5); rungs not needed then are not pulled.
+R2's pair is frozen L1 (v1.83.7-stable, FAIL) -> L2 (v1.83.8-nightly, PASS) by the G5 source read; L3/L4 are extra PASS rungs and the advisory's own pair, also run.
 Tag commits: `v1.83.9-nightly` `850fe595ac54`, `v1.83.10-stable` `0db4158c56f6`, `v1.83.13-nightly`
 `7b47dffefd88`, `v1.83.14-stable` `3d2b8fed3281` (GitHub API, 2026-11-08).
 
@@ -87,3 +87,15 @@ is checked in phase 1; if so, those two are not pulled.
 | Date | Image | Source | Size | Digest | Note |
 |---|---|---|---|---|---|
 | — | nothing pulled yet | | | | |
+
+## Source-clone log (G9; blobless clones for the static reachability read — no images pulled)
+
+| Date | Repo | Source | Size (blobless) | HEAD at clone | Note |
+|---|---|---|---|---|---|
+| 2026-11-08 | QuantumNous/new-api | github.com (clone `--filter=blob:none`) | 8.7 MB | `dd50ee0a567b810ea60e74dcd9ea6a5786b37b91` | source read only (R3/R4/R5) |
+| 2026-11-08 | Wei-Shaw/sub2api | github.com (clone `--filter=blob:none`) | 18 MB | `6b4b37db43443b5e88e424fe3c69602cc3810dfb` | source read only (R6) |
+| 2026-11-08 | envoyproxy/ai-gateway | github.com (clone `--filter=blob:none`) | 3.8 MB | `d41f08217b8d8c362f85f0d5094b2fd072fbb4c4` | source read only (backup, not selected) |
+| 2026-11-08 | BerriAI/litellm | github.com (clone `--filter=blob:none`) | 126 MB | `d0c16008c8e80b992f9bdb90078e17ee59cda5b4` | source read only (R1/R2, backup CVE-2026-35029) |
+
+Clones live under `build/src/` (gitignored by `build/`). Nothing was executed from them; blobs for the
+read tags were fetched on checkout. No container image has been pulled.

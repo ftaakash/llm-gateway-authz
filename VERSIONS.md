@@ -1,12 +1,45 @@
 # Advisory oracle — selection, version pins and regression ladders (pilot 10)
 
-**Status: PROPOSED, not frozen.** Per G4 (user, 2026-11-08) the six are frozen only after a static reachability ranking (section "Static reachability ranking", to be added).
+**Status: FROZEN 2026-11-08** (user G4, after the static reachability ranking below). The six are
+**R1–R6 as listed** (no swap needed: all six are source-reachable with mock providers and deterministic).
 After the freeze no advisory is swapped, dropped or added, and an advisory that turns out unreachable
-counts as **not rediscovered** (pilot 08 D4/D6 rule). No test has been written or run.
+**at run time** counts as **not rediscovered** (pilot 08 D4/D6 rule). No test has been written or run.
+The ranking that justified the freeze is the "Static reachability ranking" section below; it rests on
+source reads only (GitHub clones, nothing executed).
 
 **Admission rule** (SCOPE.md): a test is valid only if it **FAILs on the affected image and PASSes on the
 fixed image**, with the positive control holding on both. **Kill condition 3 (recall half):** ≥ **4 of 6**
 must flip FAIL→PASS exactly at the predicted version.
+
+## Static reachability ranking (G4) — source reads only, nothing executed (2026-11-08)
+
+Each candidate was read at its affected and fixed tags from blobless GitHub clones under `build/src/`
+(pre-approved source clones; no build, no run). "Mock-reachable" = the vulnerable path can be exercised
+on a local-only testbed with a WireMock upstream and dummy keys, with a positive control. "Deterministic"
+= the FAIL is produced by a crafted but fixed request, not by a timing window.
+
+| Rank | Candidate | Mock-reachable | Deterministic | Setup weight | Source evidence (what was read) |
+|---|---|---|---|---|---|
+| 1 | **R4** new-api CVE-2026-64859 | yes — no model call | yes | light | `model/user.go`: at `v1.0.0-rc.6` `AccessToken` has `json:"access_token"` and user-list queries use `Omit("password")` only; fix commit `0936e25` changes the tag to `json:"-"`. Checked by admin user-list read. |
+| 2 | **R2** LiteLLM CVE-2026-47102 | yes — no model call | yes | light | `internal_user_endpoints.py` `_update_single_user_helper`: role guard ("Only proxy admins can modify user roles") **absent** at `v1.83.6-nightly`/`v1.83.7-stable`, **present** at `v1.83.8-nightly`+. `/user/update` reaches that helper at every tag. |
+| 3 | **R1** LiteLLM CVE-2026-47101 | yes — no model call | yes | light | `key_management_endpoints.py`: `_check_allowed_routes_caller_permission` exists at `v1.83.13-nightly` but a `key_type`-derived elevated route bucket (`handle_key_type` → `["management_routes"]`) is **not** re-checked until `v1.83.14-stable` (fix `2220f30` adds the post-`handle_key_type` re-check + passthrough guard). |
+| 4 | **R3** new-api CVE-2026-71479 | yes — billed call to mock channel | yes (overflow, not a race) | medium (needs a mockable billed path + balance read) | `relay/helper/price.go` at `v1.0.0-rc.17` multiplies float ratios by user-controlled quantity fields; fix `c9943d37`/`d0bd8aac` add saturating conversions and max-field bounds across relay validators. |
+| 5 | **R5** new-api CVE-2026-30886 | yes — video channel base URL is channel-configurable | yes | medium (video channel + task setup via mock) | `controller/video_proxy.go` `VideoProxy` fetches by `GetByOnlyTaskId(taskID)` (no owner check) at `v0.11.4-alpha.1`; route `GET /v1/videos/:task_id/content` under `TokenOrUserAuth()`. Fix `50ec2bac` switches to owner-scoped retrieval. Task adaptors (gemini/doubao) use `info.ChannelBaseUrl` → WireMock. |
+| 6 | **R6** Sub2API CVE-2026-73079 | yes — `upstream`-type account uses operator Base URL + API key (no OAuth login) | yes | heavier (PostgreSQL + Redis + account setup) | `internal/domain/constants.go` `AccountTypeUpstream` ("Base URL + API Key"); `internal/handler/endpoint.go` responses wildcard (`/responses/*subpath`, `/backend-api/codex/responses/*subpath`) splices the caller subpath into the upstream URL; fix adds `internal/service/upstream_path_guard.go` (present only at `v0.1.169`). Observed via the mock request journal. |
+
+**Backups considered, not selected** (kept as alternates; selection is frozen without them):
+
+| Candidate | Mock-reachable | Deterministic | Why not selected |
+|---|---|---|---|
+| LiteLLM CVE-2026-35029 (`/config/update` no admin check; fixed 1.83.0) | yes — management API | yes | Strongest backup. Affected rung would be a 1.82.x GHCR image, fixed `v1.83.0-nightly`. Not needed (6 primaries all reachable); its impact is config rewrite/RCE, so the assertion must stay to "non-admin reaches the route" (observe the authz gate), never the RCE — slightly more care than the 6 chosen. |
+| new-api CVE-2026-64865 (quota cache overwrite; `v1.0.0-rc.15`→`rc.16`) | yes | **no** (CWE-362 race; FAIL needs a concurrent window) | Non-deterministic FAIL; a race is a weak oracle cell. |
+| Envoy AI Gateway / Agent Router GHSA-w5rr-gc4v-5946 (metering, `≤1.1.0`→`1.2.0`) | unclear | yes | Needs an Envoy + Kubernetes Gateway API stack; standalone local deployability unverified; advisory package name (`theagentrouter/agent-router`) differs from the repo (`envoyproxy/ai-gateway`). Heaviest setup, lowest confidence. |
+
+**Freeze decision (G4):** all six primaries are mock-reachable and deterministic from the source, spanning
+3 gateways (LiteLLM ×2, new-api ×3, Sub2API ×1) — the idea-10 "≥2 per gateway where possible, ≥3 overall"
+is met except that Sub2API contributes one (only one authorization-class advisory exists for it). The six
+R1–R6 are frozen as listed. If, at run time, any of R3/R5/R6 proves unreachable, it counts as not
+rediscovered and the backups are **not** substituted (post-freeze rule); the recall result is reported as is.
 
 ## How the facts below were checked (2026-11-08)
 
@@ -40,7 +73,7 @@ poisoning) is a generic web flaw and is not used. Hence the proposed split is **
 | ID | Gateway | Advisory | Class | Affected rung (FAIL) | Fixed rung (PASS) | Mock needed? | Reachable with mocks |
 |---|---|---|---|---|---|---|---|
 | R1 | LiteLLM | CVE-2026-47101 · GHSA-qrc4-49gv-mv9m | scope escalation via key `allowed_routes` | `v1.83.13-nightly` | `v1.83.14-stable` | no (management API only) | expected |
-| R2 | LiteLLM | CVE-2026-47102 · GHSA-wpfp-gwwc-vwq6 | self role change via `/user/update` | **see note R2** | **see note R2** | no | expected |
+| R2 | LiteLLM | CVE-2026-47102 · GHSA-wpfp-gwwc-vwq6 | self role change via `/user/update` | `v1.83.7-stable` (source-confirmed; see note R2) | `v1.83.8-nightly` | no | reachable (source-confirmed) |
 | R3 | new-api | CVE-2026-71479 · GHSA-8r8v-xf7q-rcpr | metering: quantity overflow → negative charge | `v1.0.0-rc.17` | `v1.0.0-rc.18` | yes (billed relay call) | UNVERIFIED |
 | R4 | new-api | CVE-2026-64859 · GHSA-6x2c-phff-wx57 | role boundary: admin reads root access token | `v1.0.0-rc.6` | `v1.0.0-rc.7` | no | expected |
 | R5 | new-api | CVE-2026-30886 · GHSA-f35r-v9x5-r8mc | ownership: task_id IDOR in VideoProxy | `v0.11.4-alpha.1` | `v0.11.4-alpha.2` | yes (video task upstream) | UNVERIFIED |
@@ -80,14 +113,16 @@ metering.
   `v1.83.10-stable`. So by ancestry the fix ships at **1.83.8-nightly**, while the advisory says
   1.83.9 is still affected and 1.83.10 is the fix. (Possible reasons: the advisory names the first
   *stable* release; or more code was needed than the two named commits. Not resolved.)
-- **Proposed rule (G5, needs OK):** before any run, read the `/user/update` handler source at
-  `v1.83.7-stable`, `v1.83.8-nightly`, `v1.83.9-nightly`, `v1.83.10-stable` (static, no execution) and fix
-  the predicted flip pair from the source. Default if the source confirms ancestry:
-  **`v1.83.7-stable` (FAIL) → `v1.83.8-nightly` (PASS)**, with `v1.83.9-nightly` and `v1.83.10-stable`
-  as extra rungs that must also PASS. If the source shows the check only at 1.83.10, the pair is
-  `v1.83.9-nightly` → `v1.83.10-stable`. The pair is frozen in this file before R2 runs.
-  Note `v1.83.7-stable` is on a stable branch (diverged from the nightly line); the mainline rung just
-  before `v1.83.8-nightly` is `v1.83.6-nightly`, which also lacks both commits.
+- **Resolved (G5, source read 2026-11-08):** the `/user/update` route reaches `_update_single_user_helper`
+  at every candidate tag; the role guard ("Only proxy admins can modify user roles", from fix commit
+  `e6f18ce`) is **absent** at `v1.83.6-nightly` and `v1.83.7-stable` and **present** at `v1.83.8-nightly`,
+  `v1.83.9-nightly`, `v1.83.10-stable` and later. So the fix ships at **`v1.83.8-nightly`**, two releases
+  before the advisory's stated 1.83.10. **Frozen pair: `v1.83.7-stable` (FAIL) → `v1.83.8-nightly` (PASS).**
+  `v1.83.9-nightly` and `v1.83.10-stable` are run as extra rungs and must also PASS (they contain the
+  guard). The **advisory's own pair** (`v1.83.9-nightly` → `v1.83.10-stable`) is also run and reported, so
+  a reader sees both; by the frozen oracle the measured flip is at 1.83.8-nightly. `v1.83.7-stable` is on
+  the stable branch (diverged from the nightly line); the mainline rung just before `v1.83.8-nightly` is
+  `v1.83.6-nightly`, which also lacks the guard.
 - **Assertion (sketch):** an `org_admin` (and separately an `internal_user`) updates their own record
   with `user_role=proxy_admin`; PASS = refused or role unchanged when re-read. Positive control: the
   same user can update a permitted own field. Role is re-read from `/user/info`, not inferred.
