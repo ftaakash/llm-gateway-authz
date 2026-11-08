@@ -32,7 +32,7 @@ case "$GW" in
     for r in 0.1.168 0.1.169; do
       echo "###### sub2api $r"; down
       bash "$T/sub2api/up.sh" "weishaw/sub2api:$r" || { echo "bring-up failed $r"; continue; }
-      bash "$PILOT/scripts/22_sub2api_cell.sh" "$r" "weishaw/sub2api:$r"
+      bash "$PILOT/scripts/22_sub2api_r6.sh" "$r" "weishaw/sub2api:$r"
     done; down ;;
   *) echo "unknown gateway $GW"; exit 2 ;;
 esac
