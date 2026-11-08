@@ -18,10 +18,15 @@ case "$GW" in
       bash "$PILOT/scripts/20_litellm_cell.sh" "$r" "ghcr.io/berriai/litellm:$r"
     done; down ;;
   newapi)
+    # R4 (rc.6/rc.7), R3 (rc.17/rc.18), R5 (alpha.1/alpha.2) — each rung runs its cell
     for r in v1.0.0-rc.6 v1.0.0-rc.7 v1.0.0-rc.17 v1.0.0-rc.18 v0.11.4-alpha.1 v0.11.4-alpha.2; do
       echo "###### new-api $r"; down
       bash "$T/newapi/up.sh" "calciumion/new-api:$r" || { echo "bring-up failed $r"; continue; }
-      bash "$PILOT/scripts/21_newapi_cell.sh" "$r" "calciumion/new-api:$r"
+      case "$r" in
+        v1.0.0-rc.6|v1.0.0-rc.7)   bash "$PILOT/scripts/21_newapi_cell.sh" "$r" "calciumion/new-api:$r" ;;
+        v1.0.0-rc.17|v1.0.0-rc.18) bash "$PILOT/scripts/23_newapi_r3.sh"   "$r" "calciumion/new-api:$r" ;;
+        v0.11.4-alpha.1|v0.11.4-alpha.2) bash "$PILOT/scripts/24_newapi_r5.sh" "$r" "calciumion/new-api:$r" 2>/dev/null || echo "(R5 cell pending)" ;;
+      esac
     done; down ;;
   sub2api)
     for r in 0.1.168 0.1.169; do

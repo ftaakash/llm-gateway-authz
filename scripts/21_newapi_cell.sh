@@ -53,5 +53,4 @@ else
 fi
 
 # R3 and R5 appended by the finalized add-on once their reachability check passes.
-[ -f "$(dirname "$0")/21b_newapi_r3r5.sh" ] && source "$(dirname "$0")/21b_newapi_r3r5.sh"
 echo "--- rows appended to $out"
