@@ -1,0 +1,12 @@
+# LiteLLM proxy config for the pilot-10 recall cells (R1, R2). Local only.
+# The single model routes to the in-network WireMock; the key is a dummy string.
+model_list:
+  - model_name: mock-model
+    litellm_params:
+      model: openai/mock-model
+      api_base: http://p10-mock:8080
+      api_key: dummy-not-a-real-key
+general_settings:
+  master_key: sk-pilot10-master
+litellm_settings:
+  drop_params: true

@@ -1,0 +1,7 @@
+{
+  "request": { "method": "POST", "urlPathPattern": "/(v1/)?images/generations" },
+  "response": {
+    "status": 200, "headers": { "Content-Type": "application/json" },
+    "jsonBody": { "created": 1730000000, "data": [ { "url": "http://mock/img.png" } ] }
+  }
+}

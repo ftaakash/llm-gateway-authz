@@ -1,0 +1,7 @@
+net,check,expected,got,ok,commit
+pilot10,network_internal_flag,true,true,yes,f4dcf74-dirty
+pilot10,egress_probe_control,200,200,yes,f4dcf74-dirty
+pilot10,egress_ip_1.1.1.1,BLOCKED,BLOCKED,yes,f4dcf74-dirty
+pilot10,egress_dns_example.com,BLOCKED,BLOCKED,yes,f4dcf74-dirty
+pilot10,driver_to_mock_health,200,200,yes,f4dcf74-dirty
+pilot10,host_published_ports,0,0,yes,f4dcf74-dirty

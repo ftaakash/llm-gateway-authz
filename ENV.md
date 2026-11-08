@@ -98,5 +98,10 @@ is checked in phase 1; if so, those two are not pulled.
 | 2026-11-08 | envoyproxy/ai-gateway | github.com (clone `--filter=blob:none`) | 3.8 MB | `d41f08217b8d8c362f85f0d5094b2fd072fbb4c4` | source read only (backup, not selected) |
 | 2026-11-08 | BerriAI/litellm | github.com (clone `--filter=blob:none`) | 126 MB | `d0c16008c8e80b992f9bdb90078e17ee59cda5b4` | source read only (R1/R2, backup CVE-2026-35029) |
 
-Clones live under `build/src/` (gitignored by `build/`). Nothing was executed from them; blobs for the
-read tags were fetched on checkout. No container image has been pulled.
+**Relocated to D: 2026-11-08 (user: C: must not grow).** The clones were **moved** (not re-downloaded)
+from `build/src/` to **`D:\Masters-data\pilot10\src\<project>`** (litellm 127 MB, new-api 24 MB, sub2api
+81 MB, ai-gateway 3.8 MB). Scripts reference them via `$SRC_DIR` (default `/d/Masters-data/pilot10/src`,
+set in `scripts/lib.sh`). Nothing was executed from them. **Docker's disk image was moved by the user to
+`D:\DockerData`**, so all image pulls and the 15 gateway images already pulled now live on D:; C: is not
+used for pilot-10 artefacts. Any further download (e.g. `redis:7.4.1-alpine`, still needed for R6) lands on
+D: and is gated on C: free ≥ 40 GB first.

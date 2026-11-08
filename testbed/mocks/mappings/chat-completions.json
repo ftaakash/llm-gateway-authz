@@ -1,0 +1,14 @@
+{
+  "request": { "method": "POST", "urlPathPattern": "/(v1/)?chat/completions" },
+  "response": {
+    "status": 200,
+    "headers": { "Content-Type": "application/json" },
+    "jsonBody": {
+      "id": "chatcmpl-mock1", "object": "chat.completion", "created": 1730000000,
+      "model": "mock-model",
+      "choices": [ { "index": 0, "finish_reason": "stop",
+        "message": { "role": "assistant", "content": "mock reply" } } ],
+      "usage": { "prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2 }
+    }
+  }
+}

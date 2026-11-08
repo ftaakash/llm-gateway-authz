@@ -1,0 +1,23 @@
+# image	digest  (frozen 2026-11-08, VERSIONS.md/ENV.md; pull by digest only)
+# --- LiteLLM recall rungs (GHCR) ---
+ghcr.io/berriai/litellm:v1.83.6-nightly	sha256:2d4182e96d64df4a605cbfebd79ff8564c90bb026594feb70ab9952d7ae48f86
+ghcr.io/berriai/litellm:v1.83.7-stable	sha256:af0152ca6dfb6703b35c0d4899effa9ac132bce9a4fbcbe1dc6ef145c100db26
+ghcr.io/berriai/litellm:v1.83.8-nightly	sha256:085b1f79c4547f8e7abb46755e8a55ad96a8eaae5009cb74cfa37d9a0ec7f1e9
+ghcr.io/berriai/litellm:v1.83.9-nightly	sha256:4148c2c806d028eb8b159fbdc022916eb068a34138a5f4a45b1384a39a3ef42c
+ghcr.io/berriai/litellm:v1.83.10-stable	sha256:6c82d338a60e7b273ae46bf1d8db814d2856ae010f96c44eeadde574d3893f76
+ghcr.io/berriai/litellm:v1.83.13-nightly	sha256:2fc41eb21c717a5d5ff72b6e3c3f13ea9c7506f2457a6a1f41454fcfedd33a8d
+ghcr.io/berriai/litellm:v1.83.14-stable	sha256:c81eb79cd4333c6cfe374c0ec929110fd23f0ee5f7fd198855a6fbddc77b83ba
+# --- new-api recall rungs (Docker Hub) ---
+calciumion/new-api:v0.11.4-alpha.1	sha256:7feb70ca2786d1236ffd1134ee6ae7413a532dd67cc5bcab9cbe15267b586f5a
+calciumion/new-api:v0.11.4-alpha.2	sha256:137ea8bbdb6d1d8e56ac5810761a44a9d55fafeaefb7a40a402289cd37013d04
+calciumion/new-api:v1.0.0-rc.6	sha256:bb560b0f59df2d03025136320d6217e7e7c1578e31267ecca2df939317015431
+calciumion/new-api:v1.0.0-rc.7	sha256:af1f10306055076b58acb17298e2a775a484ee3fdc1eddae35e431f243e1e950
+calciumion/new-api:v1.0.0-rc.17	sha256:108546a0e4b1fc1e097e8fc87fcdd27029799ec3e5bf0d5f50fb612427f087f1
+calciumion/new-api:v1.0.0-rc.18	sha256:d75ca98ee8b04fcc4cbdc0aad98bb6327280c402cf919969e0055629a88799ca
+# --- Sub2API recall rungs (Docker Hub) ---
+weishaw/sub2api:0.1.168	sha256:85d29bfc69fa7a314cd2a35420dbe2faa6251ccbb3c3d1d4c56c732270e87479
+weishaw/sub2api:0.1.169	sha256:c9ee04bc92f916c9fce269c23e01bbde4ca6aee190e99221114224e37aa91ed9
+# --- supporting ---
+library/postgres:16.4-alpine	sha256:5660c2cbfea50c7a9127d17dc4e48543eedd3d7a41a595a2dfa572471e37e64c
+library/redis:7.4.1-alpine	sha256:c1e88455c85225310bbea54816e9c3f4b5295815e6dbf80c34d40afc6df28275
+wiremock/wiremock:3.13.1	sha256:d61e7720f89483fdef5366843b58d1dfd06bcce5828179c9f2f54de5c28354b0
