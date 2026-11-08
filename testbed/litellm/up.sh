@@ -4,6 +4,7 @@
 # Local only: no host ports published; the net is --internal (no egress).
 source "$(dirname "$0")/../../scripts/lib.sh"
 NET="${NET:-pilot10}"
+MOCKW="$(cd "/c/Users/Administrator/Desktop/Masters/pilots/10-llm-gateway-authz/testbed/mocks" && pwd -W)"
 IMG="${1:?usage: up.sh <litellm_image_tag>}"
 MASTER="sk-pilot10-master"
 HERE="$(cd "$(dirname "$0")" && pwd -W)"   # Windows form for the Docker bind mount
@@ -12,7 +13,7 @@ docker network inspect "$NET" >/dev/null 2>&1 || docker network create --interna
 docker rm -f p10-mock p10-ll-db p10-litellm >/dev/null 2>&1 || true
 docker volume rm p10_lldb >/dev/null 2>&1 || true
 
-docker run -d --name p10-mock --network "$NET" wiremock/wiremock:3.13.1 --disable-banner >/dev/null
+MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL="*" docker run -d --name p10-mock --network "$NET" -v "$MOCKW:/home/wiremock" wiremock/wiremock:3.13.1 --disable-banner >/dev/null
 docker run -d --name p10-ll-db --network "$NET" -v p10_lldb:/var/lib/postgresql/data \
   -e POSTGRES_USER=litellm -e POSTGRES_PASSWORD=litellm -e POSTGRES_DB=litellm \
   library/postgres:16.4-alpine >/dev/null

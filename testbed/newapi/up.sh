@@ -3,13 +3,14 @@
 # WireMock. Fresh volume each call. Arg: <image_tag>. Local only, no host ports.
 source "$(dirname "$0")/../../scripts/lib.sh"
 NET="${NET:-pilot10}"
+MOCKW="$(cd "/c/Users/Administrator/Desktop/Masters/pilots/10-llm-gateway-authz/testbed/mocks" && pwd -W)"
 IMG="${1:?usage: up.sh <newapi_image_tag>}"
 
 docker network inspect "$NET" >/dev/null 2>&1 || docker network create --internal "$NET" >/dev/null
 docker rm -f p10-mock p10-newapi >/dev/null 2>&1 || true
 docker volume rm p10_newapi >/dev/null 2>&1 || true
 
-docker run -d --name p10-mock --network "$NET" wiremock/wiremock:3.13.1 --disable-banner >/dev/null
+MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL="*" docker run -d --name p10-mock --network "$NET" -v "$MOCKW:/home/wiremock" wiremock/wiremock:3.13.1 --disable-banner >/dev/null
 # SQLite mode: no SQL_DSN. Root user root/123456 is auto-created on first boot.
 docker run -d --name p10-newapi --network "$NET" -v p10_newapi:/data \
   -e TZ=UTC "$IMG" >/dev/null

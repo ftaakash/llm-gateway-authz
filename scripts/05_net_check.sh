@@ -4,13 +4,14 @@
 # the in-network positive-control service. Evidence (not a result): env/net-isolation.csv.
 source "$(dirname "$0")/lib.sh"
 NET="${NET:-pilot10}"
+MOCKW="$(cd "/c/Users/Administrator/Desktop/Masters/pilots/10-llm-gateway-authz/testbed/mocks" && pwd -W)"
 out="$PILOT/env/net-isolation.csv"
 [ -f "$out" ] || echo "net,check,expected,got,ok,commit" > "$out"
 row() { local ok=no; [ "$2" = "$3" ] && ok=yes; echo "$NET,$1,$2,$3,$ok,$COMMIT" >> "$out"; printf '%-26s expected=%-8s got=%-8s %s\n' "$1" "$2" "$3" "$ok"; }
 
 docker network inspect "$NET" >/dev/null 2>&1 || docker network create --internal "$NET" >/dev/null
 docker rm -f p10-mock >/dev/null 2>&1 || true
-docker run -d --name p10-mock --network "$NET" wiremock/wiremock:3.13.1 --disable-banner >/dev/null
+MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL="*" docker run -d --name p10-mock --network "$NET" -v "$MOCKW:/home/wiremock" wiremock/wiremock:3.13.1 --disable-banner >/dev/null
 # wait for mock admin to answer, in-network
 for i in $(seq 1 30); do
   up="$(drv "$NET" -s -o /dev/null -w '%{http_code}' --max-time 4 http://p10-mock:8080/__admin/health 2>/dev/null || true)"
