@@ -191,3 +191,105 @@ them (date, sources, query strings) for the phase-0 boundary and again for this 
 2. Re-run the egress probe from a clean commit (M5), then re-run R1, R2 and R4 in one clean batch. Append the new rows; never overwrite.
 3. Build and run R5 (P3, M2), and store the R6 `0.1.168` evidence (M6).
 4. Only then restate the KC3 recall outcome, from stored rows only. Current releases stay untouched until it is ≥ 4 of 6.
+
+---
+
+## Review 3 — Phase 2 gateway invariant catalogue (frozen `7e577e2`) and the final recall claim (2026-11-09)
+
+Commits reviewed: `e17e006` through `7e577e2` (review-2 fixes, R5 cell, final recall rows and summary, G16 mirror,
+catalogue freeze). All are authored `ftaakash`, with no co-author line and nothing from `private/` tracked. Nothing has
+run against a current release.
+
+**Verdict: NOT CLEARED for Phase 3.** The recall half does not reach 4 of 6 under its own frozen oracle (B1). SCOPE
+says the catalogue and the current-release run happen only if recall passes, so Phase 3 cannot start until B1 is
+resolved. Separately, the catalogue has a design flaw that would also block Phase 3 (C1).
+
+### B1 (blocker). R5's counted flip does not meet the frozen R5 signature
+
+The frozen R5 row (VERSIONS.md "Oracle signatures", `f4dcf74`, unchanged since) says:
+- FAIL = user B's content request returns **200 with A's content**, and the mock journal shows an upstream fetch for B's request.
+- INVALID if **A's own-content positive control fails, or A's task is not complete/retrievable** (precondition, polled with a bound, M2).
+
+The stored R5 rows (`results/recall.csv`) show that **A's own request was refused on both rungs because the task was not
+complete**. On the affected rung, B's request got the same not-complete refusal, not A's content. No journal fetch for B
+is recorded. Under the frozen rule, both rows are therefore **INVALID**, because the precondition was not met. The cell
+judged FAIL by a different criterion: "same task-specific response, not a not-found". That criterion was not frozen,
+and it was applied after the observation existed. RECALL-SUMMARY also says "A's positive control holds", which the
+stored observation contradicts.
+
+The difference in the owner-scoped lookup between the two rungs is real evidence of the fix, but it is not the frozen
+signature. With R5 INVALID, the counted flips are **R2, R3 and R4: 3 of 6, below the threshold**.
+
+The way forward is the user's decision (I recommend trying (a) first):
+- **(a) Re-run R5 under the unchanged frozen signature.** Complete the task lifecycle through the mock so that A
+  retrieves A's content (200) as the precondition, then measure B. This fixes the setup after a precondition-INVALID,
+  as the R1 re-run did; it does not change the oracle. Append the new rows and keep the INVALID ones.
+- **(b) Accept 3 of 6.** KC3 recall then fires, and the frozen action applies: **drop the gateway half to related
+  work; Paper A becomes DSP-only.**
+- Changing the R5 signature now, after the result, is not an option under the freeze rules.
+
+**The public mirror already says "recall half PASSES 4/6"** (pushed by replaying `acc6c96` and `a08ef26`). Once B1 is
+settled, correct it with a normal follow-up commit that states R5 is INVALID under the frozen signature and gives the
+resulting outcome. Never force-push.
+
+### Catalogue questions
+
+**C1 (High). Sanity is measured on the verdict build, so admission and verdict are not independent (pilot 08 INV-6
+lesson).** For every invariant, the "sanity configuration (PASS by construction)" is the **current build**. If a current
+release violates the invariant, its sanity check fails, and the cell is discarded as INVALID instead of reported as a
+FAIL. That hides exactly the result the novelty half looks for. Sanity must run on a build where the invariant holds
+**by construction, independent of the target**. For G2–G5 that is the same gateway's recall **fixed** image. For the
+other gateways, use a pinned build whose guard is shown to be present from the source. The current-release run is the
+verdict only. Amend this before any current-release cell; that is allowed now because no result exists.
+
+**C2 (High). Are config mutations sound?** A mutation is sound when it is a **minimal, documented removal of the
+specific guard on the code path the verdict exercises**, in the same gateway, pinned by a diff or fixture sha. A FAIL
+then shows that the test detects the missing guard. If the mutation changes anything else (the mock, the driver, a
+different route or principal setup), it tests our **fixture**, not the gateway.
+
+For the Go gateways (new-api, Sub2API, one-api), "remove the guard" means **rebuilding the image from patched source**.
+That is a code mutation, not configuration. A Go toolchain plus module downloads would be a **new download source**,
+which needs the user's OK.
+
+For INV-G1 and INV-G6, whose recall cells were INVALID with mocks, a mutation that makes the path reachable only inside
+the fixture does not show that the **target's** path is reachable. The verdict cell must first show reachability on the
+current build through its positive control; otherwise the result is "admission not established".
+
+Before Phase 3, write down for each (invariant × gateway): the mutation, its exact diff or flag, how it is built, and its sha.
+
+**C3 (Medium). INV-G7 is not grounded.** It has no CVE behind it, and the invariant is broad ("grant-preserving and
+injection-safe"). Its mutation assumes there is a tool or scope filter to disable; if none exists, there is nothing to
+mutate, and sanity is not "PASS by construction". Label INV-G7 **exploratory** and report it separately. Do not count it
+toward KC3's new-violation half unless, before Phase 3, it names for each gateway a **documented** per-key or per-user
+tool/model restriction and the code guard that enforces it.
+
+**C4 (Medium). Per-gateway observables.** For INV-G3, "balance" on LiteLLM and Sub2API is budget/spend, not a quota
+balance. For INV-G4 and INV-G5, secret fields and resource ids differ per gateway. Freeze the concrete observable,
+route and signature for each (invariant × gateway) before Phase 3. A cell judged against an observable chosen after the
+first run is post-hoc.
+
+**C5 (Mostly correct; two small gaps). Targets and one-api.** It is correct to exclude one-api's two known-unpatched
+advisories as "not new". Pre-register which cell each one would surface in: the channel-pinning advisory maps to
+INV-G5, while the redemption race is outside the frozen set (races are excluded). A one-api hit is then classified by
+its mechanism, not by judgement after the fact. Also align the disclosure channel: SCOPE says one-api's channel is the
+user's decision, but the catalogue lists GitHub private reporting. One-api has no affected or fixed images, so every
+one-api cell depends on C2 mutations.
+
+**C6 (Medium). KC3 firing rule.** "At least one new violation in total across a ≥3-gateway target set" matches SCOPE.
+Add SCOPE's completeness clause explicitly: "0 new" (the downgrade) may be stated only when admitted cells cover the
+**full** frozen catalogue on ≥3 gateways. Otherwise the result is "incomplete", which neither fires nor passes.
+
+**C7 (Sufficient, with additions). Confidentiality for the public mirror.** The design is right: all Phase-3
+observations, verdicts, counts, KC4 frame tags and specialised scripts go to `private/`, and tracked text says only
+"phase-3 run complete, results private". Add these:
+- **Admission rows** that run on or touch a current-release build also go to `private/`.
+- **Per-gateway G7 applicability (NA)** measured on a current release goes to `private/`.
+- **Names of mutation fixtures and commit messages** must not hint at which (invariant × gateway) pair behaved how.
+- The pre-push check greps the whole replay range for counts, invariant×gateway pairs and verdict words, as in pilot 08.
+
+### Settle before the first current-release cell
+1. B1, by the user's choice of (a) or (b), plus the public correction commit.
+2. C1: amend sanity to run on target-independent builds.
+3. C2 and C4: a table per (invariant × gateway) giving the mutation, observable, route and signature, and the user's OK for any Go build toolchain or module download.
+4. C3: label G7 exploratory or ground it. C5: the one-api mapping and disclosure channel. C6: the completeness clause. Record each as a dated amendment in INVARIANTS.md.
+5. The user's explicit go for Phase 3.
