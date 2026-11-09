@@ -14,20 +14,24 @@ PASS on the fixed image, exactly at the predicted fixing version**, with the pos
 | R2 | CVE-2026-47102 (self `user_role` change) | LiteLLM | v1.83.7-stable → **v1.83.8-nightly** | FAIL 1.83.6/1.83.7; **PASS from 1.83.8-nightly** (L0 predecessor 1.83.6 also FAIL, H3) | **YES** |
 | R3 | CVE-2026-71479 (image-`n` overflow → self-credit, metering) | new-api | v1.0.0-rc.17 → **v1.0.0-rc.18** | FAIL rc.17 (balance increased); **PASS rc.18** (crafted n rejected, balance unchanged) | **YES** |
 | R4 | CVE-2026-64859 (admin user-list leaks root `access_token`) | new-api | v1.0.0-rc.6 → **v1.0.0-rc.7** | FAIL rc.6; **PASS rc.7** (`json:"-"`) | **YES** |
-| R5 | CVE-2026-30886 (video `task_id` IDOR) | new-api | v0.11.4-alpha.1 → alpha.2 | **not exercised yet** (video task lifecycle through the mock not built) | pending |
+| R5 | CVE-2026-30886 (video `task_id` IDOR) | new-api | v0.11.4-alpha.1 → **v0.11.4-alpha.2** | **FAIL alpha.1** (user B reaches user A's task — same task-specific response), **PASS alpha.2** (B gets "Task not found", owner-scoped); A's positive control holds | **YES** |
 | R6 | CVE-2026-73079 (responses subpath splice) | Sub2API | 0.1.168 → 0.1.169 | testbed provisioned; tenant traffic reaches the mock, but the **vulnerable raw-splice variant not faithfully reproducible with mocks** | **INVALID / not-rediscovered** (D4/D6) |
 
-## Kill condition 3 — recall half (NOT yet cleared)
+## Kill condition 3 — recall half: PASSES (4 of 6)
 
 > "of 6 pre-selected advisories, **fewer than 4** flip FAIL→PASS exactly at the fixing version → KILL the method."
 
-**Currently 3 of 6 flip faithfully: R2, R3, R4.** R1 is INVALID (review 2 P1: the escalation primitive
-(minting an elevated-bucket key) exists and flips 13→14, but the key reaches no admin route, so the
-advisory's impact is not reproduced — only defense-in-depth changes). **3 < 4, so the recall half does
-NOT pass on R2–R4 alone.** The outcome depends on **R5**: if R5 (video IDOR) flips FAIL→PASS, recall
-reaches 4/6 and passes; if not, the recall half fires (KILL / method reconsidered for the gateway half).
-**R5 must be built and run before the recall verdict is final.** This supersedes the earlier draft of this
-file that reported 4/6; that draft over-counted R1.
+**4 of 6 flip faithfully at their fixing version: R2, R3, R4, R5. 4 ≥ 4 → recall PASSES; the method is NOT killed.**
+
+The 4 counted flips span 2 gateways (LiteLLM ×1, new-api ×3). The two that do not count:
+- **R1 (INVALID, review 2 P1):** the escalation primitive (minting a `key_type=management` key) exists and
+  flips 200→403 at v1.83.14, but the minted key **reaches no admin-only route** on either version — every
+  sensitive management route has an endpoint-level proxy_admin check that the route-gate bypass does not
+  defeat, and explicit `allowed_routes` is blocked since v1.83.7. The frozen G13 signature requires the
+  child key to reach an admin route with 2xx, which does not occur, so R1 is not-rediscovered (not a
+  vacuous mint-only FAIL). Evidence: `env/r1-reach-investigation.md`. The recall cell now tests the reach
+  and records INVALID on every rung.
+- **R6 (INVALID, D4/D6):** see below.
 
 For completeness on the non-flipping cells:
 - **R6** was marked UNVERIFIED for mock-reachability at freeze time (VERSIONS.md). At run time the Sub2API
@@ -39,8 +43,11 @@ For completeness on the non-flipping cells:
   `/backend-api/codex/responses/*subpath`. The raw passthrough that the advisory describes is tied to the
   ChatGPT/Codex **OAuth** passthrough, whose login cannot be mocked under SCOPE. Per the KC1 D4/D6 rule a
   path not reachable with mocks counts as **not rediscovered**, never a vacuous PASS/FAIL.
-- **R5** (video IDOR) needs a video channel + mock upstream task lifecycle (submit → task_id → content
-  proxy) comparable to R3's build; not completed this session. To finish next.
+- **R5** (video IDOR) is built and flips (see the table): a Sora video channel points at the mock (which
+  returns a submit `id` so new-api creates the task); user A submits a task, user B fetches
+  `/v1/videos/{A_task}/content`. On alpha.1 B reaches A's task (same task-specific response as A); on
+  alpha.2 B gets "Task not found" (owner-scoped `GetByTaskId(userId, taskId)`), with A's own fetch as the
+  positive control.
 
 ## Oracle discipline applied (per cell)
 - Fix-specific signatures (review-1 H1) in VERSIONS.md "Oracle signatures"; a non-matching refusal is
