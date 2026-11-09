@@ -1,2 +1,3 @@
 ts,control,sent_path,journaled_path,journaled_status,result
 2026-11-08T20:00:16Z,h4_dotsegment_journaled,/v1/responses/..%2f..%2fX,recorded_verbatim,200,PASS
+# M6 note: sub2api 0.1.168 bring-up intermittently fails in the batch (setup-wizard self-restart timing); 0.1.169 ran and recorded R6 INVALID. Source pointer for "not reachable with mocks": backend/internal/handler/openai_gateway_handler.go:658 "unsupported account type: upstream" (apikey passthrough normalizes /v1/responses->/v1/chat/completions; upstream type 502s pre-mock). Raw splice needs ChatGPT/Codex OAuth passthrough (cannot mock OAuth login under SCOPE).
