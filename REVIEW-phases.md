@@ -113,3 +113,81 @@ that the pull log has no unused pulls. A jq install via `apk` in a build step is
 3. Pull by digest and log every pull. Build an internal network per cell. Store the egress negative probe under `env/`.
 4. Run the mock-only control (H4), then the recall cells, lightest first (R4, R2, R1, then R3, R5, R6). Store each observation before its verdict.
 5. Recall results on patched advisories may be tracked. Current releases are not touched until recall is ≥ 4 of 6.
+
+---
+
+## Review 2 — Phase 1 recall ladder (2026-11-09)
+
+Commits reviewed: `f4dcf74` (review-1 High items settled), `bf30d84`, `f494f10`, `623e8d5`, `1f83b09`, `95923cd`,
+`ce86924` (recall results and summary). All are authored `ftaakash`, with no co-author line and nothing under `private/` tracked.
+Recall results concern already-patched public advisories, so they may be tracked (SCOPE). This review
+does not restate them and adds no current-release content.
+
+**Verdict: on track, but the KC3 recall claim is NOT CLEARED yet.** One counted advisory (R1) does not meet
+its own frozen FAIL signature, and three counted cells store no positive-control observation. Without R1,
+three advisories are counted; R5 is unexercised and R6 is not rediscovered, so the threshold would be missed.
+Both R1 and R5 must be resolved before the summary can state that recall passes.
+
+### What holds
+- The review-1 High items were settled in `f4dcf74`, **before** the first pull or cell: G12–G15, frozen
+  signatures, the R2 combining rule, and the L0 rung. The commit order confirms it.
+- Every recall row carries the rung, image digest and a commit stamp. Each row's timestamp is after the commit it is stamped with.
+- The pull log has digest-match evidence for every row. Each image is under the 5 GB limit.
+- R2 flips at the predicted version, with the frozen fix-specific refusal text and a role re-read. The L0 mainline
+  predecessor FAILs as H3 required, and `internal_user` is used as supporting evidence only (H2).
+- For R4 and R3, the FAIL rung shows the advisory's mechanism and the PASS rung shows the fix's behaviour. R3's FAIL is the
+  strict increase that M1 required.
+- R6 is recorded as INVALID / not rediscovered and is not counted. That is the correct D4/D6 treatment, and no backup is substituted.
+- The H4 mock-journal control is stored and passed before the R6 observation.
+
+### High — before the recall summary may claim "passes"
+
+**P1. R1's FAIL rows do not meet the frozen R1 FAIL signature.** In VERSIONS.md "Oracle signatures", the R1 FAIL
+mechanism is a child key that **actually reaches** the admin-only route, with a 2xx on a route the base role is gated
+from. The stored FAIL observations show only that the elevated key was **created**. No route call is recorded. Under G13,
+a FAIL that does not show the advisory's mechanism is not a valid FAIL. As stored, R1 is **INVALID**, not rediscovered.
+To fix it, add the read-only route call with the child key to the R1 cell, re-run the R1 rungs, and store the
+observation. Do not re-label the old rows.
+
+**P2. Positive controls are not stored for R1, R2 and R4.** RECALL-SUMMARY says each positive control held, but
+`recall.csv` records none for these three cells. SCOPE requires that there be "no verdict without its observation".
+Only R3's observation carries its control. Add a control observation to each row (or a sibling control row with the
+same stamp), and re-run so the controls are stored. A control that is claimed but not stored is "not archived" and cannot support a verdict.
+
+**P3. R5 is unexercised, and the KC3 outcome depends on it once P1 is applied.** The summary says R5 and R6 "do not
+change this outcome". That only holds if R1 stands. Either build the R5 cell (with the M2 bounded precondition) and run
+both rungs, or report R5 as not exercised. Do not state a recall result until P1 and R5 are both settled.
+
+**P4. R1's PASS signature must match the path being tested.** The R1 cell exercises the `key_type` path, and its PASS row
+shows the direct-field refusal text. The frozen signature names a separate refusal for the `key_type` path: the
+post-`handle_key_type` re-check. Confirm from the `v1.83.14-stable` source that the re-check emits this same text and
+that the text is absent at `v1.83.13-nightly`. Record the source evidence. If the text does not come from the re-check,
+the PASS is INVALID under G13.
+
+### Medium — before the phase-1 report
+
+**M5. Provenance of stamps and runs.** `env/net-isolation.csv` is stamped `f4dcf74-dirty` and has no timestamp,
+so it cannot be shown to precede the first cell, and it ran from a dirty tree. `ce86924` ("clean stamps") adds the
+CSV in one go. State whether the rows came from one clean batch run at `1f83b09`/`95923cd` or were re-stamped, and keep
+the raw batch output under `env/` or `results/`. Re-run the egress probe from a clean commit with a timestamp, before the P1/P2 re-runs.
+
+**M6. Support for the R6 reachability call.** The INVALID reasoning (the passthrough normalises the path; the
+`upstream` account type fails before the mock) is plausible, but the row is for **`0.1.169` only**. Store the
+`0.1.168` attempt, plus a short source pointer showing that the raw splice sits behind the OAuth passthrough. That
+makes "not reachable with mocks" auditable and shows it is not a setup error.
+
+**M7. The KC4 check carries no evidence.** DECISIONS records "none found 2026-11-08" without venues or queries. Log
+them (date, sources, query strings) for the phase-0 boundary and again for this phase boundary.
+
+### Low
+- **L5.** There is a stray directory `testbed/litellm/config.yaml;C` (a Windows path artefact). Remove it, and confirm the mount used the file.
+- **L6.** The source clones moved (the D: relocation in `bf30d84`). Update ENV.md's source-clone log with the new path, so that the
+  review-1 source re-checks stay reproducible.
+- **L7.** RECALL-SUMMARY quotes the KC3 text with "KILL the method". The frozen Paper-A action for KC3 is
+  "drop the gateway half to related work". Quote the frozen wording.
+
+### What to do next, in order
+1. P4 (a source read only), then fix the R1 cell (P1) and add stored positive controls (P2).
+2. Re-run the egress probe from a clean commit (M5), then re-run R1, R2 and R4 in one clean batch. Append the new rows; never overwrite.
+3. Build and run R5 (P3, M2), and store the R6 `0.1.168` evidence (M6).
+4. Only then restate the KC3 recall outcome, from stored rows only. Current releases stay untouched until it is ≥ 4 of 6.
