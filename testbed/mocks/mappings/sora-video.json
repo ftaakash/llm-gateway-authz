@@ -1,0 +1,8 @@
+{
+  "priority": 2,
+  "request": { "method": "POST", "urlPathPattern": "/(v1/)?videos" },
+  "response": {
+    "status": 200, "headers": { "Content-Type": "application/json" },
+    "jsonBody": { "id": "video_mock123", "task_id": "video_mock123", "status": "completed", "progress": 100 }
+  }
+}

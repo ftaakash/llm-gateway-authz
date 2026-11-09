@@ -47,9 +47,9 @@ elif [ "${arole:-0}" != 10 ]; then
 elif [ "${rootn:-0}" -lt 1 ]; then
   row CVE-2026-64859 root_token INVALID "positive control: root record not in admin2's list"
 elif [ "${leak:-0}" -ge 1 ]; then
-  row CVE-2026-64859 root_token FAIL "non-root admin GET /api/user/ exposes root access_token (nonempty)"
+  row CVE-2026-64859 root_token FAIL "non-root admin GET /api/user/ exposes root access_token (nonempty); posctl: root record present=$rootn, precond token set=$precond"
 else
-  row CVE-2026-64859 root_token PASS "root present in admin2 list but access_token absent/empty"
+  row CVE-2026-64859 root_token PASS "root present in admin2 list but access_token absent/empty; posctl: root record present=$rootn, precond token set=$precond"
 fi
 
 # R3 and R5 appended by the finalized add-on once their reachability check passes.

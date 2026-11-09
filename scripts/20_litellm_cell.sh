@@ -42,13 +42,13 @@ else
   if [ "$pc" != 200 ]; then
     row CVE-2026-47102 org_admin INVALID "positive control own-field update=$pc (route not reachable)"
   elif [ "$newrole" = proxy_admin ]; then
-    row CVE-2026-47102 org_admin FAIL "self-elevation succeeded; role re-read=proxy_admin (http $st)"
+    row CVE-2026-47102 org_admin FAIL "self-elevation succeeded; role re-read=proxy_admin (http $st); posctl own-field update=$pc"
   elif [ "$st" = 403 ] && echo "$detail" | grep -qi 'proxy admins can modify user roles'; then
-    row CVE-2026-47102 org_admin PASS "refused 403 [$detail]; role stayed $newrole"
+    row CVE-2026-47102 org_admin PASS "refused 403 [$detail]; role stayed $newrole; posctl own-field update=$pc"
   elif [ "$st" = 403 ]; then
-    row CVE-2026-47102 org_admin INVALID "403 but detail!=signature [$detail]"
+    row CVE-2026-47102 org_admin INVALID "403 but detail!=signature [$detail]; posctl=$pc"
   else
-    row CVE-2026-47102 org_admin INVALID "neither elevated nor signature-403 (http $st, role $newrole)"
+    row CVE-2026-47102 org_admin INVALID "neither elevated nor signature-403 (http $st, role $newrole); posctl=$pc"
   fi
 fi
 # internal_user sub-cell (supporting only, H2): via API key the route gate blocks it.
@@ -59,40 +59,44 @@ irole="$(body "$BASE/user/info?user_id=$IUSER" -H "$M" | "$JQ" -r '.user_info.us
 row CVE-2026-47102 internal_user_support "$( [ "$irole" = proxy_admin ] && echo FAIL || echo noesc )" "api-key route gate http=$ist role=$irole (supporting, not the verdict)"
 
 echo "=== R1 allowed_routes / key_type scope escalation on $LABEL"
-# R1 mechanism: an internal_user obtains a key carrying an elevated route bucket
-# its role may not set. Explicit allowed_routes is blocked by the pre-existing
-# _check_allowed_routes_caller_permission; the key_type=management path derives
-# allowed_routes=["management_routes"] AFTER that check. The 1.83.14 fix adds the
-# post-handle_key_type re-check, so the key_type mint flips 200 -> 403.
-# Signature: FAIL = mint returns a key whose allowed_routes contains the elevated
-# bucket; PASS = mint refused 403 "Only proxy admins can set `allowed_routes`".
+# R1 mechanism (advisory): an internal_user creates a key with access to an
+# admin-only route and the key then REACHES that route with 2xx (G13 signature).
+# This cell mints the key_type=management bucket and then tests the actual reach
+# against an admin route, with the plain internal_user key as the baseline and a
+# read_only key as the positive control.
+#   FAIL = the minted key reaches an admin-only route (2xx) the plain key cannot.
+#   PASS = minted key refused on that route AND the elevated mint itself refused.
+#   INVALID = no reach differential (the escalation does not grant admin access).
+# Finding (review 2 P1, env/r1-reach-investigation.md): on this ladder the minted
+# bucket reaches NO admin route (endpoint-level proxy_admin checks defeat the
+# route-gate bypass; explicit allowed_routes blocked since 1.83.7), so R1 records
+# INVALID on every rung rather than a vacuous mint-only FAIL.
 iu2="$(body -X POST "$BASE/user/new" -H "$M" -H 'Content-Type: application/json' -d '{"user_role":"internal_user"}')"
 IKEY2="$(echo "$iu2" | "$JQ" -r '.key // empty')"
 if [ -z "$IKEY2" ]; then
   row CVE-2026-47101 base INVALID "internal_user key setup failed"
 else
   IU="Authorization: Bearer $IKEY2"
-  # positive control: a non-admin CAN mint a safe-preset key (read_only) and use it
+  ADMIN_ROUTE="/user/list"   # admin-only; plain internal_user is refused
+  # positive control: a non-admin CAN mint a safe-preset key and use a permitted route
   ro_key="$(body -X POST "$BASE/key/generate" -H "$IU" -H 'Content-Type: application/json' -d '{"key_type":"read_only"}' | "$JQ" -r '.key // empty')"
   pc_models="$( [ -n "$ro_key" ] && code "$BASE/models" -H "Authorization: Bearer $ro_key" || echo NA)"
-  # supporting: explicit elevated allowed_routes should be blocked on every rung
+  base_reach="$(code "$BASE$ADMIN_ROUTE" -H "$IU")"                    # plain internal_user baseline
   expl_code="$(code -X POST "$BASE/key/generate" -H "$IU" -H 'Content-Type: application/json' -d '{"allowed_routes":["/user/new"]}')"
-  # the verdict vector: key_type=management mint
   mint="$(body -X POST "$BASE/key/generate" -H "$IU" -H 'Content-Type: application/json' -d '{"key_type":"management"}')"
   mint_code="$(code -X POST "$BASE/key/generate" -H "$IU" -H 'Content-Type: application/json' -d '{"key_type":"management"}')"
   mkey="$(echo "$mint" | "$JQ" -r '.key // empty')"
   mbucket="$(echo "$mint" | "$JQ" -rc '.allowed_routes // empty')"
-  mdetail="$(echo "$mint" | "$JQ" -r '(.error.message // .detail // .)|tostring' | tr -d '\n' | cut -c1-70)"
+  child_reach="$( [ -n "$mkey" ] && code "$BASE$ADMIN_ROUTE" -H "Authorization: Bearer $mkey" || echo NA)"
+  pcobs="posctl(read_only->/models)=$pc_models baseline(plain->$ADMIN_ROUTE)=$base_reach explMint=$expl_code mint=$mint_code bucket=$mbucket childReach=$child_reach"
   if [ -z "$ro_key" ] || [ "$pc_models" != 200 ]; then
-    row CVE-2026-47101 poscontrol INVALID "safe-preset read_only mint/use failed (key=${ro_key:+set} models=$pc_models)"
-  elif [ -n "$mkey" ] && echo "$mbucket" | grep -q 'management_routes'; then
-    row CVE-2026-47101 key_type_mint FAIL "internal_user minted key with allowed_routes=$mbucket (expl allowed_routes blocked=$expl_code)"
-  elif [ "$mint_code" = 403 ] && echo "$mdetail" | grep -qi 'proxy admins can set'; then
-    row CVE-2026-47101 key_type_mint PASS "mint refused 403 [$mdetail] (expl allowed_routes blocked=$expl_code)"
-  elif [ -n "$mkey" ]; then
-    row CVE-2026-47101 key_type_mint INVALID "mint succeeded but no elevated bucket (allowed_routes=$mbucket)"
+    row CVE-2026-47101 reach INVALID "positive control failed: $pcobs"
+  elif [ "$child_reach" = 200 ] && [ "$base_reach" != 200 ]; then
+    row CVE-2026-47101 reach FAIL "minted key REACHES $ADMIN_ROUTE (2xx) that plain cannot — $pcobs"
+  elif [ "$mint_code" = 403 ] && [ "$child_reach" != 200 ]; then
+    row CVE-2026-47101 reach PASS "elevated mint refused and no admin-route reach — $pcobs"
   else
-    row CVE-2026-47101 key_type_mint INVALID "mint neither elevated nor signature-403 (http $mint_code detail=[$mdetail])"
+    row CVE-2026-47101 reach INVALID "no reach differential: elevated key does not reach an admin route (escalation primitive only) — $pcobs"
   fi
 fi
 echo "--- rows appended to $out"
