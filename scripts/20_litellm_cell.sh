@@ -89,14 +89,18 @@ else
   mbucket="$(echo "$mint" | "$JQ" -rc '.allowed_routes // empty')"
   child_reach="$( [ -n "$mkey" ] && code "$BASE$ADMIN_ROUTE" -H "Authorization: Bearer $mkey" || echo NA)"
   pcobs="posctl(read_only->/models)=$pc_models baseline(plain->$ADMIN_ROUTE)=$base_reach explMint=$expl_code mint=$mint_code bucket=$mbucket childReach=$child_reach"
+  # A faithful PASS requires that the exploit (child key REACHES an admin route)
+  # was demonstrable on the affected version and is blocked on the fixed one.
+  # On this ladder the reach never occurs (endpoint-level proxy_admin checks), so
+  # there is no FAIL side and therefore no faithful flip: INVALID on every rung,
+  # including the fixed one (mint-refusal alone is defense-in-depth, not the G13
+  # reach signature). FAIL is kept only for the (unobserved) real-reach case.
   if [ -z "$ro_key" ] || [ "$pc_models" != 200 ]; then
     row CVE-2026-47101 reach INVALID "positive control failed: $pcobs"
   elif [ "$child_reach" = 200 ] && [ "$base_reach" != 200 ]; then
     row CVE-2026-47101 reach FAIL "minted key REACHES $ADMIN_ROUTE (2xx) that plain cannot — $pcobs"
-  elif [ "$mint_code" = 403 ] && [ "$child_reach" != 200 ]; then
-    row CVE-2026-47101 reach PASS "elevated mint refused and no admin-route reach — $pcobs"
   else
-    row CVE-2026-47101 reach INVALID "no reach differential: elevated key does not reach an admin route (escalation primitive only) — $pcobs"
+    row CVE-2026-47101 reach INVALID "no admin-route reach (escalation primitive does not grant admin access; G13 reach signature not met) — $pcobs"
   fi
 fi
 echo "--- rows appended to $out"
