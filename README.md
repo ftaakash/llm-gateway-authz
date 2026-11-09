@@ -43,6 +43,9 @@ Per-run results, each row stamped with the image digest and the commit it ran at
   Anthropic or any real provider or third-party gateway.
 - Gateway images pinned **by digest** ([env/pins.tsv](env/pins.tsv)); an ephemeral `curl` driver
   container issues requests, and JSON is parsed on the host.
+- Any credentials in `testbed/` and the scripts (e.g. the local master key, admin/root passwords, the
+  JWT secret, dummy upstream keys) are **throwaway local test-only values** for disposable mock containers
+  on the internal no-egress network — **not real secrets**.
 
 ## Scope and ethics
 
