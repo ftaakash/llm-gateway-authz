@@ -10,20 +10,26 @@ PASS on the fixed image, exactly at the predicted fixing version**, with the pos
 
 | # | Advisory | Gateway | Affected → Fixed (predicted) | Observed flip | Rediscovered? |
 |---|---|---|---|---|---|
-| R1 | CVE-2026-47101 (key `allowed_routes`/`key_type` scope escalation) | LiteLLM | v1.83.13-nightly → **v1.83.14-stable** | FAIL through 1.83.13; **PASS at 1.83.14-stable** | **YES** |
+| R1 | CVE-2026-47101 (key `allowed_routes`/`key_type` scope escalation) | LiteLLM | v1.83.13-nightly → v1.83.14-stable | mint flips 200→403, but the escalated key **reaches no admin route** on either version (see `env/r1-reach-investigation.md`) — the frozen G13 signature (child key reaches an admin route with 2xx) is not met | **INVALID / not-rediscovered** (review 2 P1) |
 | R2 | CVE-2026-47102 (self `user_role` change) | LiteLLM | v1.83.7-stable → **v1.83.8-nightly** | FAIL 1.83.6/1.83.7; **PASS from 1.83.8-nightly** (L0 predecessor 1.83.6 also FAIL, H3) | **YES** |
 | R3 | CVE-2026-71479 (image-`n` overflow → self-credit, metering) | new-api | v1.0.0-rc.17 → **v1.0.0-rc.18** | FAIL rc.17 (balance increased); **PASS rc.18** (crafted n rejected, balance unchanged) | **YES** |
 | R4 | CVE-2026-64859 (admin user-list leaks root `access_token`) | new-api | v1.0.0-rc.6 → **v1.0.0-rc.7** | FAIL rc.6; **PASS rc.7** (`json:"-"`) | **YES** |
-| R5 | CVE-2026-30886 (video `task_id` IDOR) | new-api | v0.11.4-alpha.1 → alpha.2 | **not exercised this session** (video task lifecycle through the mock not built) | pending |
+| R5 | CVE-2026-30886 (video `task_id` IDOR) | new-api | v0.11.4-alpha.1 → alpha.2 | **not exercised yet** (video task lifecycle through the mock not built) | pending |
 | R6 | CVE-2026-73079 (responses subpath splice) | Sub2API | 0.1.168 → 0.1.169 | testbed provisioned; tenant traffic reaches the mock, but the **vulnerable raw-splice variant not faithfully reproducible with mocks** | **INVALID / not-rediscovered** (D4/D6) |
 
-## Kill condition 3 — recall half
+## Kill condition 3 — recall half (NOT yet cleared)
 
 > "of 6 pre-selected advisories, **fewer than 4** flip FAIL→PASS exactly at the fixing version → KILL the method."
 
-**4 of 6 flip exactly at their fixing version (R1, R2, R3, R4). 4 ≥ 4 → recall PASSES; the method is NOT killed.**
+**Currently 3 of 6 flip faithfully: R2, R3, R4.** R1 is INVALID (review 2 P1: the escalation primitive
+(minting an elevated-bucket key) exists and flips 13→14, but the key reaches no admin route, so the
+advisory's impact is not reproduced — only defense-in-depth changes). **3 < 4, so the recall half does
+NOT pass on R2–R4 alone.** The outcome depends on **R5**: if R5 (video IDOR) flips FAIL→PASS, recall
+reaches 4/6 and passes; if not, the recall half fires (KILL / method reconsidered for the gateway half).
+**R5 must be built and run before the recall verdict is final.** This supersedes the earlier draft of this
+file that reported 4/6; that draft over-counted R1.
 
-R5 and R6 do not change this outcome (4 already meets the threshold), but for completeness:
+For completeness on the non-flipping cells:
 - **R6** was marked UNVERIFIED for mock-reachability at freeze time (VERSIONS.md). At run time the Sub2API
   testbed stands up fully (install, compliance, group, upstream/apikey account, user balance, tenant
   api-key) and tenant traffic reaches the mock (an `apikey` passthrough control request is journaled), but
