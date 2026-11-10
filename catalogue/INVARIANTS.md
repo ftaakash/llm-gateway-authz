@@ -232,7 +232,7 @@ authorization model. It contains **no results** and encodes **no undisclosed fin
   prefix carrying the operator key. **INVALID** the legitimate-subpath control fails, or the mock did not
   journal the raw dot-segment path (H4 control must pass first).
 
-## INV-G7 — Tool-call translation integrity *(applicability to be measured)*
+## INV-G7 — Tool-call translation integrity *(EXPLORATORY — reported separately, not counted toward KC3 unless grounded; see amendment A3)*
 
 - **Source.** Residual from the killed C2 ParserDiff kill test (kept as "one invariant family inside C1"): a
   gateway that **translates** tool-call requests/responses between API dialects (OpenAI ↔ Anthropic ↔ Gemini,
@@ -321,7 +321,9 @@ never disclosed by us. Only a violation with **no** public advisory is a candida
 - The novelty half **passes** (no downgrade) iff the admitted suite finds **≥1 new** (no public advisory)
   invariant violation on the current release of **≥3** gateways **in aggregate** — i.e. at least one new
   violation total, across a target set spanning ≥3 gateways. It **fires** (downgrade) iff the admitted suite
-  finds **0** new violations across the ≥3-gateway target set.
+  finds **0** new violations across the ≥3-gateway target set — **but** (completeness clause, **amendment A6**)
+  "0 new" may be declared only when the admitted cells cover the **full frozen catalogue on ≥3 gateways**;
+  otherwise the result is **INCOMPLETE** (neither fires nor passes).
 - Only **admitted** (invariant × gateway) cells contribute. An INVALID or admission-not-established cell is
   neither a PASS nor a new violation; it is reported as not-measured.
 - The **count itself is a phase-3 result** → it stays in `private/`. Tracked text says only whether the phase-3
@@ -350,4 +352,90 @@ if added.
 
 ## Amendments
 
-*(none yet — the set above is the freeze of 2026-11-09.)*
+All amendments below are **design-only** (dated, pre-Phase-3): **no current-release cell has run** and no
+result exists. They address the review-3 catalogue questions (C1–C7) and review-5 L10. The specific
+current-release guard functions and the Go mutation diffs are **not named here** (they live in `mutations/`
+and DECISIONS G19, kept out of the public mirror per G20); this file stays generic.
+
+- **A1 — 2026-11-10 — C1: sanity independence (admission ⟂ verdict).** Previously every invariant's "sanity
+  configuration (PASS by construction)" was the **current build** — so a current release that *violates* the
+  invariant would fail its own sanity check and be discarded INVALID, hiding the very FAIL the novelty half
+  looks for (the pilot-08 INV-6 lesson). **Sanity now runs on a target-independent build where the invariant
+  holds by construction, never on the target:** for **INV-G2/G3/G4/G5** that is the same gateway's recall
+  **fixed** image; for every other (invariant × gateway) pair, a **pinned build whose guard is shown present
+  from source**. The current release is the **verdict leg only**. Settled before any current-release cell (no
+  result exists yet).
+
+- **A2 — 2026-11-10 — C2: mutation soundness + the admission table.** A mutation is admitted only as a
+  **minimal, documented removal of the specific guard on the code path the verdict exercises, in the same
+  gateway, pinned by a diff/fixture sha**, changing nothing else (not the mock, driver, route or principal
+  setup) — otherwise it tests the fixture, not the gateway. For the **Go** gateways (new-api, Sub2API, one-api)
+  "remove the guard" means **rebuilding the image from patched source** (a code mutation; the Go toolchain +
+  module downloads are the user-approved C2 source — DECISIONS G19; the concrete INV-G1/G6 builds live in
+  `mutations/`, not mirrored). For **INV-G1 and INV-G6** (recall INVALID with mocks) the verdict cell must
+  **first show reachability on the current build through its positive control**, or the cell is recorded
+  **"admission not established"**, never a vacuous pass/fail. The per-(invariant × gateway) mutation /
+  observable / route / signature table is the **A-table** below; it is frozen before the first current-release
+  cell.
+
+- **A3 — 2026-11-10 — C3: INV-G7 is exploratory.** INV-G7 (tool-call translation integrity) has no CVE and a
+  broad invariant; its mutation presumes a tool/scope filter to disable, which may not exist (then sanity is
+  not "PASS by construction"). **INV-G7 is relabelled EXPLORATORY and reported separately; it does NOT count
+  toward KC3's new-violation half** unless, before Phase 3, it names for each gateway a **documented** per-key
+  or per-user tool/model restriction **and** the code guard that enforces it.
+
+- **A4 — 2026-11-10 — C4: per-gateway observables frozen before Phase 3.** The concrete observable, route and
+  signature for each (invariant × gateway) are frozen in the A-table **before** any current-release cell (a
+  cell judged against an observable chosen after the first run is post-hoc). Per-gateway differences called
+  out: **INV-G3** "balance" is **budget/spend** on LiteLLM and Sub2API vs a **quota balance** on new-api and
+  one-api; **INV-G4** secret fields and **INV-G5** resource ids differ per gateway.
+
+- **A5 — 2026-11-10 — C5: one-api mapping + disclosure channel.** Pre-registered so a one-api hit is classified
+  by **mechanism**, not after the fact: one-api **CVE-2026-81027** (channel pinning via `channelid`) → **INV-G5**;
+  **CVE-2026-11465** (redemption race) → **outside the frozen set** (races are excluded). Both are
+  known-unpatched public advisories and are **not** new violations if hit. one-api has **no** affected/fixed
+  images, so **every one-api cell depends on a C2 build mutation** for admission (A2). Disclosure channel for
+  one-api is **the user's decision** (SCOPE), correcting the catalogue's blanket "GitHub private reporting"
+  wording for that gateway.
+
+- **A6 — 2026-11-10 — C6: firing-rule completeness clause.** KC3's new-violation half may be declared **"0 new"
+  (the downgrade)** only when the **admitted** cells cover the **full frozen catalogue on ≥3 gateways**.
+  Otherwise the result is **INCOMPLETE** — it neither fires the downgrade nor passes the novelty half. (This is
+  SCOPE's completeness clause made explicit; "≥1 new violation across a ≥3-gateway set passes" is unchanged.)
+
+- **A7 — 2026-11-10 — C7: mirror-confidentiality additions.** In addition to the confidentiality block above:
+  (a) **admission rows** that run on or touch a current-release build also go to `private/`; (b) per-gateway
+  **INV-G7 applicability (NA)** measured on a current release goes to `private/`; (c) **mutation-fixture names
+  and commit messages must not hint** which (invariant × gateway) pair behaved how; (d) the **pre-push check
+  greps the whole replay range** for counts, (invariant × gateway) pairs and verdict words (pilot-08 practice);
+  (e) per **G20**, `mutations/` and the guard-specific build detail are **not published** to the mirror until
+  after Phase 3 and any disclosure finish.
+
+- **A8 — 2026-11-10 — review-5 L10: empty/non-integer journal count → INVALID.** In every **journal-based**
+  cell (**INV-G5**, **INV-G6**, and any cell whose observable is a mock-journal count), an **empty or
+  non-integer** count maps to **INVALID** — it is never defaulted to 0 (which could turn a refused leg into a
+  spurious PASS with the journal never observed). To be enforced in the shared helper **before** the first
+  Phase-3 journal cell (the R5 G18J cell verified its counts were non-empty integers on both rungs by hand;
+  this makes it structural).
+
+### A-table — per-(invariant × gateway) admission (frozen pre-Phase-3; **design only, no results**)
+
+Sanity = the **target-independent** build on which the invariant holds by construction (A1). Mutation = the
+**minimal single-guard removal** on the same gateway (A2); for Go gateways this is a patched-source rebuild
+(G19; INV-G1/G6 concretely built in `mutations/`, not mirrored). "Observable/route/signature" is the frozen
+oracle from the "Oracle signatures" table, specialised per gateway (A4). Cells marked **pin-before-cell** still
+need their exact guard/observable read from that gateway's pinned source before that cell runs (a prerequisite
+of A1/A2/A4); none runs until Phase 3 is cleared.
+
+| Inv | Gateways (applies) | Sanity (target-independent) | Mutation (admission FAIL leg) | Observable / route / signature |
+|---|---|---|---|---|
+| G1 | new-api, LiteLLM, one-api, Sub2API | recall fixed image where a scope guard is present; else a pinned build with the guard shown in source | **Go rebuild** with the key/token scope-authorization guard removed (new-api: built, `mutations/`; LiteLLM/one-api/Sub2API: pin-before-cell) | child credential reaches an out-of-grant route/model (2xx the creator cannot); PASS = refused with the scope-check signature |
+| G2 | LiteLLM, new-api, one-api, Sub2API | **recall fixed image** (R2 fixed) for LiteLLM; per-gateway fixed/guarded build elsewhere (pin-before-cell) | recall **affected** image (R2) for LiteLLM; config/build removal of the self-role field-guard elsewhere | re-read of the self-updated record shows the elevated attribute; PASS = field-guard refusal + unchanged on re-read |
+| G3 | new-api, one-api, LiteLLM, Sub2API | **recall fixed image** (R3 fixed) for new-api; guarded build elsewhere (pin-before-cell) | recall **affected** image (R3) for new-api; build/config removal of the saturating bound elsewhere | billed call with out-of-range quantity → **balance** (quota on new-api/one-api; **budget/spend** on LiteLLM/Sub2API, A4) strictly increased; PASS = refused or balance-after ≤ before |
+| G4 | new-api, one-api, LiteLLM, Sub2API | **recall fixed image** (R4 fixed) for new-api; guarded build elsewhere (pin-before-cell) | recall **affected** image (R4) for new-api; build removal of the serialization redaction elsewhere | lower role's listing exposes a higher role's non-empty secret field (per-gateway field, A4); PASS = present but absent/empty |
+| G5 | new-api, one-api, LiteLLM, Sub2API | **recall fixed image** (R5 fixed) for new-api; guarded build elsewhere (pin-before-cell); one-api CVE-2026-81027 maps here (A5) | recall **affected** image (R5) for new-api; build removal of owner-scoping elsewhere | tenant B receives tenant A's resource by A's id (+journal fetch for B where upstream); PASS = refused/404 owner-scoped + no journal fetch (A8) |
+| G6 | Sub2API, LiteLLM, new-api | pinned build with the upstream path-confinement guard present (Sub2API: the current release) | **Go rebuild** with the path-confinement guard removed (Sub2API: built, `mutations/`; LiteLLM/new-api: pin-before-cell) | mock journal records an upstream path escaping the operator prefix with operator creds; PASS = refused/under-prefix (A8) |
+| G7 | *(exploratory, A3)* | n/a until grounded per gateway (A3) | n/a until a documented tool/scope guard is named (A3) | forbidden tool/model invoked via translation (journal); **not counted** unless grounded (A3) |
+
+Reachability caveat (A2): for **G1** and **G6** the verdict cell must first show the probed path is reachable on
+the **current** build via its positive control, else the cell is "admission not established" (not a FAIL/PASS).
