@@ -35,3 +35,35 @@ Status values: **PROPOSED** = written by Claude, needs the user's yes; **RESOLVE
 - Low items L1–L4: see REVIEW-phases.md.
 - Phase-boundary review requests go to the review session **through the coordinator** (as in pilot 08).
 | G16 | 2026-11-09 | **RESOLVED (user) — public mirror for pilot 10 = `https://github.com/ftaakash/llm-gateway-authz.git`** (user created it, PUBLIC, initially empty). Supersedes G10's "no mirror". | user (coordinator-relayed) | Push rules (user): every commit authored+committed `ftaakash <gsaakash@outlook.com>`, pushed via the user's own GitHub creds; **no Claude contributor, no Co-Authored-By, no bot**; **never force-push**, normal pushes only. Mechanics (copy pilot 08): local mirror clone outside the Masters repo at `build/publish/llm-gateway-authz` (gitignored); replay each pilot-10 commit (incl. the review session's REVIEW-phases.md commits) with `git format-patch --relative=pilots/10-llm-gateway-authz <last>..HEAD` + `git am --committer-date-is-author-date`, stripping any Claude/Co-Authored-By trailer; marker file tracks the last replayed commit; push per phase by hand (no auto-push). **PUBLIC-repo content rules:** nothing from `private/`, no candidate/undisclosed finding, no current-release new-violation result or any mention of one, no secrets/keys from `testbed/`; recall results on already-patched public advisories (pass/fail + evidence) are fine; no exploit payloads. **Pre-push:** review the whole range (`git log -p <last>..HEAD`), send the coordinator the local range, and wait for clearance before each push. First push includes an initial README (what it is, the oracle, the recall ladder, scope/ethics, "Part of Paper A, half 2", link to https://github.com/ftaakash/authz-ladder). |
+| G17 | 2026-11-10 | **RESOLVED (user) — R5 setup fix + single re-run under the UNCHANGED frozen signature** (after review 3 B1). User decision, quoted: "re-run R5 after fixing the setup". | user (coordinator-relayed) | See the detail block below. The frozen R5 signature in VERSIONS.md (assertion, observable, positive control, PASS/FAIL/INVALID rule) and the verdict block of `scripts/24_newapi_r5.sh` are **unchanged**; only the mock fixtures and an M2 bounded precondition wait are added. Re-run once, on both rungs, on one clean commit; the first (INVALID) run is kept and the re-run rows are appended flagged, citing this entry; the result counts whichever way it falls. No push, no mirror/README change, no Phase 3. |
+
+### G17 detail — R5 setup fix (review 3 B1)
+
+**What was wrong.** In the first R5 run, user A's own content request (`GET /v1/videos/{A_task}/content`,
+the frozen **positive control**) was refused on **both** rungs with HTTP 400 "Task is not completed yet,
+current status: NOT_START". By the frozen R5 rule a cell whose positive control fails is **INVALID**, so the
+recorded FAIL(alpha.1)/PASS(alpha.2) were not admissible and R5 is not-rediscovered. (Recall therefore stands
+at 3/6 on the first run; the re-run may or may not restore it.)
+
+**Root cause (from pinned source, nothing run to find it).** new-api's Sora task lifecycle: submit
+`POST /v1/videos` creates a task in state `NOT_START`; a background `TaskPollingLoop` (every 15 s,
+`service/task_polling.go:91`) calls the sora adaptor's `FetchTask` → `GET {base}/v1/videos/{id}`
+(`relay/channel/task/sora/adaptor.go`), and `ParseTaskResult` maps upstream `"completed"` → `TaskStatusSuccess`;
+only then does `VideoProxy` (`controller/video_proxy.go:49`) serve `GET /v1/videos/{id}/content`
+(`{base}/v1/videos/{upstreamId}/content`, type 55 OpenAI/Sora branch). The WireMock mock **only stubbed the
+submit** (`POST /(v1/)?videos`); the status poll and content fetch hit the catch-all (empty `status`), so the
+poller never marked the task `SUCCESS`, and the cell fetched content immediately with **no wait**. A's task
+stayed `NOT_START` → A refused on both rungs.
+
+**What changes (setup/mock only).** In `scripts/24_newapi_r5.sh`: (a) add the two upstream WireMock stubs the
+sora adaptor actually calls — `GET /(v1/)?videos/[^/]+` → `{"status":"completed"}` (status poll → SUCCESS) and
+`GET /(v1/)?videos/[^/]+/content` → HTTP 200 bytes (content priority 1 beats status 3); (b) add an **M2 bounded
+precondition wait** that polls `/api/task/` until A's task is `SUCCESS` before any content fetch (a bounded
+poll, never a fixed sleep). Nothing else.
+
+**Why it does not touch the oracle.** The frozen R5 signature in VERSIONS.md is unchanged, and the cell's
+verdict block (the `notfound()` rule, the `obs` observable, and the `INVALID`/`PASS`/`FAIL` branches) is
+byte-identical. The fix only makes A's **legitimate** task complete through the mock so the positive control
+can hold; it does not weaken or alter the check, change what B does, or change how B's result is judged. At
+alpha.1 (vulnerable `GetByOnlyTaskId`) B still reaches A's task; at alpha.2 (owner-scoped `GetByTaskId`) B
+still gets "Task not found" — the oracle decides the verdict exactly as frozen.

@@ -7,6 +7,16 @@
 # B gets "Task not found" (owner-scoped). Positive control: A reaches A's own task
 # (not "not found"), and A's task exists. Observation via response body/status only.
 # Rung up via testbed/newapi/up.sh. Usage: 24_newapi_r5.sh <rung> <image>
+#
+# SETUP FIX (DECISIONS G17, re-run after review 3 B1) — mock/fixture + precondition only;
+# the frozen oracle (VERSIONS.md R5 signature), the verdict block, the observable and the
+# notfound() rule below are UNCHANGED. Earlier the mock only stubbed the Sora submit, so the
+# 15s task poller (sora FetchTask -> GET {base}/v1/videos/{id}; ParseTaskResult maps
+# "completed"->SUCCESS) hit the catchall (empty status) and A's task stayed NOT_START, and the
+# cell fetched content with no wait — A's own request was refused (400 "not completed yet") on
+# both rungs, so by the frozen positive control R5 was INVALID. The fix adds the two upstream
+# stubs the sora adaptor actually calls (status poll + content) and an M2 bounded wait for A's
+# task to reach SUCCESS before the content fetches. It only makes A's legitimate task complete.
 source "$(dirname "$0")/lib.sh"
 NET="${NET:-pilot10}"; LABEL="${1:?rung}"; IMG="${2:?image}"
 DIG="$(docker image inspect "$IMG" --format '{{range .RepoDigests}}{{.}}{{end}}' | sed 's/.*@//')"
@@ -15,6 +25,11 @@ out="$PILOT/results/recall.csv"
 row() { echo "$(date -u +%FT%TZ),new-api,$LABEL,$DIG,$1,$2,$3,\"$4\",$COMMIT" >> "$out"; printf '[%s/%s] %s — %s\n' "$1" "$2" "$3" "$4"; }
 # live-add the Sora submit stub (an `id` so the adaptor creates a task)
 docker run --rm --network "$NET" pilot08/curl:8.11.1 -s -X POST http://p10-mock:8080/__admin/mappings -H 'Content-Type: application/json' -d '{"priority":2,"request":{"method":"POST","urlPathPattern":"/(v1/)?videos"},"response":{"status":200,"headers":{"Content-Type":"application/json"},"jsonBody":{"id":"video_mock123","task_id":"video_mock123","status":"completed","progress":100}}}' >/dev/null 2>&1 || true
+# G17 setup fix — the two upstream endpoints the sora adaptor actually calls, so A's legitimate
+# task completes: (a) status poll GET /v1/videos/{id} -> "completed" (poller maps -> SUCCESS);
+# (b) content GET /v1/videos/{id}/content -> 200 bytes. Content priority (1) beats status (3).
+docker run --rm --network "$NET" pilot08/curl:8.11.1 -s -X POST http://p10-mock:8080/__admin/mappings -H 'Content-Type: application/json' -d '{"priority":1,"request":{"method":"GET","urlPathPattern":"/(v1/)?videos/[^/]+/content"},"response":{"status":200,"headers":{"Content-Type":"video/mp4"},"body":"MOCKVIDEOBYTES"}}' >/dev/null 2>&1 || true
+docker run --rm --network "$NET" pilot08/curl:8.11.1 -s -X POST http://p10-mock:8080/__admin/mappings -H 'Content-Type: application/json' -d '{"priority":3,"request":{"method":"GET","urlPathPattern":"/(v1/)?videos/[^/]+"},"response":{"status":200,"headers":{"Content-Type":"application/json"},"jsonBody":{"id":"video_mock123","task_id":"video_mock123","status":"completed","progress":100}}}' >/dev/null 2>&1 || true
 
 OUT=$(docker run --rm --network "$NET" --entrypoint sh "$DRIVER_IMG" -c '
 set -e; B=http://p10-newapi:3000
@@ -33,6 +48,15 @@ BID=$(echo "$LB" | grep -o "\"id\":[0-9]*" | head -1 | cut -d: -f2)
 BH="-b /tmp/bc -H New-Api-User:$BID"
 curl -s $BH -X POST $B/api/token/ -H "Content-Type: application/json" -d "{\"name\":\"tb\",\"unlimited_quota\":true,\"expired_time\":-1}" >/dev/null
 BKEY=$(curl -s $BH "$B/api/token/?p=0&size=10" | sed "s/.*\"key\":\"//; s/\".*//")
+# M2 bounded precondition wait: the 15s poller marks A task SUCCESS once the status stub answers.
+# Poll /api/task/ (bounded, not a fixed sleep) until SUCCESS before any content fetch. Setup only.
+i=0; AST=""
+while [ $i -lt 40 ]; do
+  AST=$(curl -s $RH "$B/api/task/?p=0&page_size=5" | grep -o "\"status\":\"[^\"]*\"" | head -1 | sed "s/\"status\":\"//;s/\"//")
+  [ "$AST" = SUCCESS ] && break
+  i=$((i+1)); sleep 3
+done
+echo "AWAIT=$AST"
 echo "ATASK=$ATASK BID=$BID"
 echo "A_CODE=$(curl -s -o /dev/null -w %{http_code} "$B/v1/videos/$ATASK/content" -H "Authorization: Bearer sk-$AKEY")"
 echo "A_BODY=$(curl -s "$B/v1/videos/$ATASK/content" -H "Authorization: Bearer sk-$AKEY" | tr -d "\n" | head -c 160)"
