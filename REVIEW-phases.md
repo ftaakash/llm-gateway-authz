@@ -293,3 +293,35 @@ observations, verdicts, counts, KC4 frame tags and specialised scripts go to `pr
 3. C2 and C4: a table per (invariant × gateway) giving the mutation, observable, route and signature, and the user's OK for any Go build toolchain or module download.
 4. C3: label G7 exploratory or ground it. C5: the one-api mapping and disclosure channel. C6: the completeness clause. Record each as a dated amendment in INVARIANTS.md.
 5. The user's explicit go for Phase 3.
+
+---
+
+## Review 4 — R5 setup fix (G17) and re-run (2026-11-10)
+
+Commits reviewed: `3aea1a6` (setup fix: script and DECISIONS G17) and `3cf5ac4` (re-run rows and egress probe). Both are authored `ftaakash`, with no co-author line and nothing pushed.
+
+**Verdict: the setup fix is compliant, but R5 is NOT yet counted.** The re-run satisfies the precondition and the content half of the frozen signature. It does not store the mock-journal half. One more run, adding only an observation, settles it.
+
+### What holds
+- **The oracle is unchanged.** The script diff in `3aea1a6` is additions only: no line removed or edited. The `notfound()` rule, the observable and the verdict branches are untouched. VERSIONS.md was last changed in `f4dcf74`, so the R5 signature is as frozen.
+- **The additions are setup only.** There are two mock stubs (task status and content) that let A's legitimate task complete, and a bounded M2 precondition wait (polled, with a limit; no fixed sleep). Neither touches B's path or the verdict logic.
+- **The G17 root cause is credible.** The submit-only mock left A's task unfinished, and the cell fetched content without waiting. That matches the INVALID observation in Review 3 B1.
+- **Run discipline is sound.** Both rungs were run once from clean commit `3aea1a6`, and the egress probe was re-run at that commit before the cells. The re-run rows are appended. The first-run rows are marked INVALID, with the original observation kept.
+- **The precondition and positive control now hold on both rungs:** A retrieves A's own content.
+- **The content half of the signature matches.** On the affected rung B gets A's content; on the fixed rung B gets the owner-scoped "Task not found".
+
+### High — before R5 is counted
+**R5-J. The journal conjunct of the frozen signature is not observed.** The frozen R5 signature (VERSIONS.md) has two parts:
+- FAIL = 200 with A's content **and** the mock journal shows an upstream fetch issued for B's request;
+- PASS = refused/404 **and** no journal fetch for B.
+
+The script never reads the WireMock journal, so neither re-run row stores that half. Under G13, a verdict without its full signature is not counted. This is the same standard Review 3 applied in B1.
+
+To fix: add one observation, the count of upstream content requests in the mock journal immediately before and after B's request (the WireMock request journal). Then bring the verdict branches into line with the frozen text (FAIL requires a journal delta for B; PASS requires none). Run both rungs once more from a clean commit, append the rows, and keep the current re-run rows as they are. This aligns the script with the frozen oracle; it does not change the oracle. If the journal disagrees with the content result on either rung, the cell is INVALID.
+
+### Low
+- **L8.** The first-run rows were relabelled in place (FAIL/PASS → INVALID) instead of being left as-is with a separate correction row. The original observation text is kept and git history has the old values, so this is acceptable. Prefer appending from now on.
+- **L9.** The run tag is folded into the rung label (`…-rerunG17`). Put it in a separate run column in a future schema, so that rung names stay comparable with VERSIONS/ENV.
+
+### Consequence for KC3
+Once the journal re-run stores a faithful FAIL→PASS, R5 counts and recall is **4 of 6 (R2, R3, R4, R5)**. Until then, the stored state is **3 of 6**. The public "4/6" wording should be corrected only after that run, with a normal commit that cites both re-runs. Review 3's catalogue items C1–C7 are still open for Phase 3.
