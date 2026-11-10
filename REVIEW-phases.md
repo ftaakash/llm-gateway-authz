@@ -390,3 +390,37 @@ G20's replay rule only excludes the `mutations/` path, and `format-patch` carrie
 
 ### Summary
 A1–A8 resolve Review 3's catalogue items as designed. Phase 3 is cleared once S1–S3 are fixed and M8–M10 are recorded, plus the user's explicit go. A short re-check is enough; no new design review is needed.
+
+---
+
+## Review 7 — re-check of the Review 6 items (`1c546eb`, 2026-11-10)
+
+Commit reviewed: `1c546eb` (design only, no runs, nothing pushed). It is authored `ftaakash` with no co-author line, and its message names no guard. Per G20, this review names no current-release guard, file or function.
+
+**Verdict: CLEARED IN PART.**
+- **Cleared:** Phase 3 cells whose admission uses **official images only**. These are the grounded pairs whose sanity is a recall **fixed** image and whose mutation is a recall **affected** image (A-table rows G2–G5 on their recall gateway).
+- **Not cleared:** any cell whose mutation is a **rebuilt** image (INV-G1 on new-api, INV-G6 on Sub2API, and every future Go/source rebuild). These wait for S2.
+- In both cases Phase 3 also needs the user's explicit go.
+
+### Closed
+- **S1 is closed.** Re-checked independently on tag objects (read-only, no fetch):
+  - The INV-G1 guard is **absent at `v1.0.0-rc.22`** and **present from `rc.23`**.
+  - The guard function and the check it calls are **byte-identical at `rc.23` and `rc.48`**.
+  - The INV-G6 guard file is **absent at `0.1.168`** and **present at `0.1.169` and `0.2.20`**.
+
+  Both sanity builds are official images, pinned by digest and independent of the verdict build. The A-table row that wrongly named the current release for INV-G6 sanity is corrected.
+- **S3 is closed as a procedure.** G21 defines:
+  - a denylist;
+  - excluded paths;
+  - hand-authored generic twins for DECISIONS and ENV;
+  - a mandatory zero-hit grep over the generated patches **and** the clone's commit messages, where any hit aborts the push;
+  - no rewriting of main-repo history.
+
+  The dry run catching a bad pathspec is evidence that the check works. The coordinator's pre-push check should still run the script on the actual range before each push.
+- **M8 is closed.** In `scripts/lib.sh`, `jint` and `journal_delta` refuse empty or non-integer counts, and the caller must record INVALID. No default to 0 remains in the helper.
+- **M9 is closed.** Under A9, a pin-before-cell row that is not completed and committed before its first cell makes that cell inadmissible.
+- **L12 is closed.** The wording is now "one guard plus rebuild provenance".
+
+### Still open
+- **S2 (High), for rebuilt mutations only.** It needs the no-op rebuild control (same recipe, no patch) to behave like the sanity build before a mutation FAIL on a rebuilt image counts. It waits on **M10**, the user's confirmation that the Go-download approval covers these extra builds. Until then, record rebuilt-mutation pairs as **"admission not established"**, never as a verdict.
+- **A note for the sanity cells.** `rc.23` and `0.1.169` differ from the verdict releases in much more than the guard. For each such cell, confirm before running that the route, principals and observable from the A-table exist on the sanity image, or the sanity leg is INVALID. A sanity INVALID is not a reason to swap the sanity build after a result exists.
