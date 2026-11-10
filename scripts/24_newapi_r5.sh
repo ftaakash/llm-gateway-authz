@@ -17,6 +17,12 @@
 # both rungs, so by the frozen positive control R5 was INVALID. The fix adds the two upstream
 # stubs the sora adaptor actually calls (status poll + content) and an M2 bounded wait for A's
 # task to reach SUCCESS before the content fetches. It only makes A's legitimate task complete.
+#
+# R5-J (DECISIONS G18, review 4) — align this cell to the journal half ALREADY in the frozen R5
+# signature (VERSIONS.md line 28): observe the WireMock journal count of upstream content requests
+# just before/after B's content request, and decide the verdict by BOTH halves (content result AND
+# journal). Observation-only addition + verdict alignment to the frozen text; VERSIONS.md untouched;
+# the setup from 3aea1a6 (stubs + M2 wait) is unchanged; precondition/positive-control paths unchanged.
 source "$(dirname "$0")/lib.sh"
 NET="${NET:-pilot10}"; LABEL="${1:?rung}"; IMG="${2:?image}"
 DIG="$(docker image inspect "$IMG" --format '{{range .RepoDigests}}{{.}}{{end}}' | sed 's/.*@//')"
@@ -60,20 +66,35 @@ echo "AWAIT=$AST"
 echo "ATASK=$ATASK BID=$BID"
 echo "A_CODE=$(curl -s -o /dev/null -w %{http_code} "$B/v1/videos/$ATASK/content" -H "Authorization: Bearer sk-$AKEY")"
 echo "A_BODY=$(curl -s "$B/v1/videos/$ATASK/content" -H "Authorization: Bearer sk-$AKEY" | tr -d "\n" | head -c 160)"
+# G18 R5-J: frozen-signature journal half — count upstream content requests in the WireMock
+# journal just before and just after B request; delta = upstream fetch issued for B request.
+CB=$(curl -s -X POST http://p10-mock:8080/__admin/requests/count -H "Content-Type: application/json" -d "{\"method\":\"GET\",\"urlPathPattern\":\"/(v1/)?videos/[^/]+/content\"}" | tr -dc "0-9")
+echo "CB=$CB"
 echo "B_CODE=$(curl -s -o /dev/null -w %{http_code} "$B/v1/videos/$ATASK/content" -H "Authorization: Bearer sk-$BKEY")"
 echo "B_BODY=$(curl -s "$B/v1/videos/$ATASK/content" -H "Authorization: Bearer sk-$BKEY" | tr -d "\n" | head -c 160)"
+CA=$(curl -s -X POST http://p10-mock:8080/__admin/requests/count -H "Content-Type: application/json" -d "{\"method\":\"GET\",\"urlPathPattern\":\"/(v1/)?videos/[^/]+/content\"}" | tr -dc "0-9")
+echo "CA=$CA"
 ')
 g(){ echo "$OUT" | sed -n "s/^$1=//p" | head -1; }
 ATASK=$(g ATASK); acode=$(g A_CODE); abody=$(g A_BODY); bcode=$(g B_CODE); bbody=$(g B_BODY)
+cb=$(g CB); ca=$(g CA); deltaB=$(( ${ca:-0} - ${cb:-0} ))   # G18 R5-J: journal fetches for B request
 notfound(){ echo "$2" | grep -qiE 'task not found|not found' || [ "$1" = 404 ]; }
-obs="A($acode)=[$abody] B($bcode)=[$bbody] task=$ATASK"
+bnf=0; notfound "$bcode" "$bbody" && bnf=1                   # B refused/404 ?
+obs="A($acode)=[$abody] B($bcode)=[$bbody] journalFetchForB=$deltaB (cb=$cb ca=$ca) task=$ATASK"
+# Verdict = frozen R5 signature (VERSIONS.md line 28), both halves:
+#   FAIL = B gets A content (not not-found) AND journal shows an upstream fetch for B request
+#   PASS = B refused/404 AND no journal fetch for B
+#   disagreement between content result and journal = INVALID
+# Precondition (ATASK) and A positive-control INVALID paths unchanged.
 if [ -z "$ATASK" ]; then
   row CVE-2026-30886 ownership INVALID "setup: A's video task not created ($obs)"
 elif notfound "$acode" "$abody"; then
   row CVE-2026-30886 ownership INVALID "positive control: A cannot see A's own task ($obs)"
-elif notfound "$bcode" "$bbody"; then
-  row CVE-2026-30886 ownership PASS "B gets Task-not-found (owner-scoped) ($obs)"
+elif [ "$bnf" = 0 ] && [ "${deltaB:-0}" -ge 1 ]; then
+  row CVE-2026-30886 ownership FAIL "B reached A's task (content, not not-found) AND journal shows upstream fetch for B ($obs)"
+elif [ "$bnf" = 1 ] && [ "${deltaB:-0}" -eq 0 ]; then
+  row CVE-2026-30886 ownership PASS "B gets Task-not-found (owner-scoped) and no journal fetch for B ($obs)"
 else
-  row CVE-2026-30886 ownership FAIL "B reached A's task (same task-specific response, not not-found) ($obs)"
+  row CVE-2026-30886 ownership INVALID "content result and journal disagree (Bnotfound=$bnf journalFetchForB=$deltaB) ($obs)"
 fi
 echo "--- $out"

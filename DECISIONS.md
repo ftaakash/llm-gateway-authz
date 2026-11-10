@@ -67,3 +67,32 @@ byte-identical. The fix only makes A's **legitimate** task complete through the 
 can hold; it does not weaken or alter the check, change what B does, or change how B's result is judged. At
 alpha.1 (vulnerable `GetByOnlyTaskId`) B still reaches A's task; at alpha.2 (owner-scoped `GetByTaskId`) B
 still gets "Task not found" — the oracle decides the verdict exactly as frozen.
+
+| G18 | 2026-11-10 | **RESOLVED (user) — R5-J: align `scripts/24_newapi_r5.sh` to the journal half ALREADY in the frozen R5 signature + one more clean re-run** (after review 4). User decision, quoted: "yes go ahead with the log check and re-run". | user (coordinator-relayed) | See the detail block below. This adds the mock-journal **observation** and aligns the verdict branches to the **existing** frozen R5 text (VERSIONS.md line 28); **VERSIONS.md is untouched**. The setup from `3aea1a6` (the two stubs + the M2 wait) is unchanged, and the precondition / A positive-control INVALID paths are unchanged. One more re-run, once on both rungs, one clean commit, egress probe first; counts whichever way it falls, no iteration. Append-only (L8); run tag kept in the rung label because adding a CSV column would break the 9-field schema (L9, noted). No push; then review 5. |
+
+### G18 detail — R5-J journal-half alignment (review 4)
+
+**What review 4 found.** The frozen R5 signature (VERSIONS.md line 28) decides the verdict by **two** halves:
+FAIL = B's `GET /v1/videos/{A_task}/content` returns A's content **and** the mock journal shows an upstream
+fetch issued for **B's** request; PASS = B refused/404 **and** no journal fetch for B. The cell implemented only
+the **content** half (B's response body/status) and never read the journal, so its rows did not store the
+journal half and R5 was **not yet counted**.
+
+**What changes (observation + verdict alignment only).** In `scripts/24_newapi_r5.sh`: (a) snapshot the WireMock
+journal count of upstream content requests (`POST /__admin/requests/count`,
+`GET /(v1/)?videos/[^/]+/content`) **just before and just after** B's content request; the delta is the "upstream
+fetch issued for B's request". (b) Decide the verdict by **both** halves exactly as the frozen text:
+`FAIL` = B content reached (not not-found) **and** delta ≥ 1; `PASS` = B refused/404 **and** delta = 0;
+**any disagreement** between the content result and the journal = `INVALID`. The `notfound()` rule, the
+precondition (`ATASK` empty) INVALID path, and the A positive-control INVALID path are **unchanged**.
+
+**Why this is not a signature change.** The journal clause was **already** in the frozen VERSIONS.md R5
+signature; this only makes the script implement it. VERSIONS.md is not edited. The setup from `3aea1a6` (the two
+Sora stubs and the M2 bounded wait) is byte-identical. The change only **strengthens** the oracle (it adds an
+INVALID-on-disagreement path); it cannot manufacture a flip.
+
+**Discipline.** One re-run, once on both rungs, from one clean commit, egress probe first; the result counts
+whichever way it falls; the setup is not iterated after the verdict. Prior rows are **kept unchanged**
+(append-only, L8); the new rows are appended, flagged in the rung label (`...-rerunG18J`) since adding a run
+column would break the CSV's 9-field schema (L9, noted). The G17 re-run rows (content-half only) are superseded
+by the G18J rows (full signature) as the admissible R5 verdict; they are left in place, not relabelled.
