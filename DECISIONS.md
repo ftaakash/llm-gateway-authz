@@ -91,6 +91,15 @@ signature; this only makes the script implement it. VERSIONS.md is not edited. T
 Sora stubs and the M2 bounded wait) is byte-identical. The change only **strengthens** the oracle (it adds an
 INVALID-on-disagreement path); it cannot manufacture a flip.
 
+**Note on the delta magnitude (review 5 L11).** `deltaB` counts the **upstream content fetches** the gateway
+issues while serving B's request, not a 0/1 flag. Because the cell probes B's content endpoint **twice** (once
+for the status code, once for the body), a vulnerable rung produces `deltaB = 2` (observed: alpha.1 `cb=2 ca=4`),
+and the fixed rung produces `deltaB = 0` (alpha.2 `cb=2 ca=2`). The verdict only tests `deltaB ≥ 1` vs `= 0`, so
+the exact count does not affect FAIL/PASS; it is recorded for evidence. **Review 5 L10 (carried, not yet
+applied):** before any Phase-3 journal cell (INV-G5/G6), harden the shared helper so an **empty or non-integer**
+count maps to **INVALID** rather than defaulting to 0 (here both counts were verified non-empty integers on both
+rungs, so no verdict rested on an unread count).
+
 **Discipline.** One re-run, once on both rungs, from one clean commit, egress probe first; the result counts
 whichever way it falls; the setup is not iterated after the verdict. Prior rows are **kept unchanged**
 (append-only, L8); the new rows are appended, flagged in the rung label (`...-rerunG18J`) since adding a run
