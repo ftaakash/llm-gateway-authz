@@ -5,3 +5,9 @@ pilot10,egress_ip_1.1.1.1,BLOCKED,BLOCKED,yes,46b8aa2
 pilot10,egress_dns_example.com,BLOCKED,BLOCKED,yes,46b8aa2
 pilot10,driver_to_mock_health,200,200,yes,46b8aa2
 pilot10,host_published_ports,0,0,yes,46b8aa2
+pilot10,network_internal_flag,true,true,yes,3aea1a6
+pilot10,egress_probe_control,200,200,yes,3aea1a6
+pilot10,egress_ip_1.1.1.1,BLOCKED,BLOCKED,yes,3aea1a6
+pilot10,egress_dns_example.com,BLOCKED,BLOCKED,yes,3aea1a6
+pilot10,driver_to_mock_health,200,200,yes,3aea1a6
+pilot10,host_published_ports,0,0,yes,3aea1a6
