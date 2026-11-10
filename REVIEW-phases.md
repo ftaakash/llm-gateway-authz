@@ -325,3 +325,35 @@ To fix: add one observation, the count of upstream content requests in the mock 
 
 ### Consequence for KC3
 Once the journal re-run stores a faithful FAIL→PASS, R5 counts and recall is **4 of 6 (R2, R3, R4, R5)**. Until then, the stored state is **3 of 6**. The public "4/6" wording should be corrected only after that run, with a normal commit that cites both re-runs. Review 3's catalogue items C1–C7 are still open for Phase 3.
+
+---
+
+## Review 5 — R5-J journal-half alignment (G18) and re-run (2026-11-10)
+
+Commits reviewed: `22c7e7d` (script and DECISIONS G18) and `b040d9c` (re-run rows and egress probe). Both are authored `ftaakash`, with no co-author line and nothing pushed.
+
+**Verdict: R5-J is CLOSED. R5 is rediscovered under the full frozen signature, so the KC3 recall half is 4 of 6 (R2, R3, R4, R5) and PASSES.**
+
+### Checks
+- **The signature was aligned, not changed.** VERSIONS.md was last changed in `f4dcf74`. The script diff adds the journal observation and replaces the verdict branches with the frozen two-part rule:
+  - FAIL = content reached **and** a journal fetch for B;
+  - PASS = not-found **and** no journal fetch;
+  - anything else = INVALID.
+
+  `notfound()`, the precondition path and the A positive-control path are unchanged. The old content-only FAIL fallback is gone, and a disagreement now goes to INVALID. This is stricter than before, never looser.
+- **The journal observation works.** The WireMock request count is read just before and just after B's request. On both rungs both counts are non-empty integers, so neither verdict rests on an observable that was never read. **The coordinator's edge case did not occur in this run.**
+- **The result is consistent.** On each rung the content half and the journal half agree. The delta for B on the affected rung equals the per-request upstream count already shown by A's own fetch (the before-count), so it is a fetch caused by B's request, not noise. On the fixed rung the delta is zero.
+- **Run discipline is sound.** There was one run, both rungs, from clean commit `22c7e7d`, with the egress probe stamped at that commit first. `b040d9c` only appends: no existing row is removed or altered.
+
+### Low
+- **L10. Empty counts default to 0 (the coordinator's edge case).** `${ca:-0}-${cb:-0}` would turn an unread count into zero. It did not affect this run, but before any future journal-based cell (INV-G5, INV-G6 in Phase 3), map an empty or non-integer count to **INVALID**. Fix this in the shared library, not cell by cell.
+- **L11.** The B-delta equals the upstream fetches per content request (more than one). State this in G18, so a reader does not expect a delta of exactly one.
+
+### What follows
+- The public "4/6" wording now matches stored evidence. Even so, a normal follow-up commit should record the history on the mirror:
+  - the first R5 rows were INVALID (Review 3 B1);
+  - the G17 setup fix and the G18 journal alignment followed;
+  - the counted flip is the G18 run.
+
+  This is the user's go; never force-push.
+- **Phase 3 stays NOT CLEARED.** Review 3 items C1–C7 (target-independent sanity builds, mutation definitions per invariant × gateway, G7 labelling, per-gateway observables, the one-api mapping, the completeness clause, the confidentiality additions) and the user's explicit go are still outstanding.
