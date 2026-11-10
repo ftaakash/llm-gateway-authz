@@ -357,3 +357,36 @@ Commits reviewed: `22c7e7d` (script and DECISIONS G18) and `b040d9c` (re-run row
 
   This is the user's go; never force-push.
 - **Phase 3 stays NOT CLEARED.** Review 3 items C1–C7 (target-independent sanity builds, mutation definitions per invariant × gateway, G7 labelling, per-gateway observables, the one-api mapping, the completeness clause, the confidentiality additions) and the user's explicit go are still outstanding.
+
+---
+
+## Review 6 — C2 mutation builds (G19) and catalogue amendments A1–A8 (G20) (2026-11-10)
+
+Commits reviewed: `b5fef06` (G19 design), `f1d35e3` (mutation builds), `9fa99b8` (amendments A1–A8 and G20). All are authored `ftaakash`, with no co-author line and nothing pushed. Nothing has run against a current release.
+Per G20, this review names no current-release guard, file or function.
+
+**Verdict: NOT CLEARED for Phase 3 yet. The design is close; three High items remain.** The amendments carry Review 3's C1–C7 and L10 faithfully. G19 was recorded before the builds, with the user's Go-download approval quoted. Both patches are minimal: one file and one hunk each. The pristine-image-plus-swapped-binary design is the right shape.
+
+### High — before the first admission or current-release cell
+
+**S1. The sanity build for INV-G1 (new-api) and INV-G6 (Sub2API) contradicts A1.** A1 says sanity never runs on the target. G19 and `mutations/README.md` still say the admission run is "sanity PASS on the **pristine current** image". That image is the verdict build, which reopens the C1 problem for exactly the two invariants that have no recall-fixed image of their own. Fix this in G19 and the README, and name a target-independent sanity build for each pair. For INV-G6 on Sub2API, the natural choice is the **R6 recall fixed image (`0.1.169`)**, whose path guard is source-confirmed. For INV-G1 on new-api, use an earlier pinned release whose same guard is shown present from source. Record the source evidence before the run.
+
+**S2. Add a no-op rebuild control so the mutation tests the guard, not the rebuild.** Each mutation image differs from the pristine image in more than the guard. It has a recompiled binary with different build provenance; new-api has a stub embedded frontend, and Sub2API is built without the `embed` tag. A FAIL on the mutation therefore cannot yet be attributed to the guard alone. Build each image a second time with the **same recipe and no patch**. That control image must behave like the sanity build on the cell; then only the guard differs between the control and the mutation. Log the control digests in the main repo. Under G20 they stay out of the mirror, like the mutation digests.
+
+**S3. The replay as described would publish the guard detail that G20 keeps private.** The guard names, files and functions appear in:
+- the **commit messages** of `b5fef06`/`f1d35e3`;
+- the **DECISIONS G19 detail block**;
+- the **ENV.md C2 table**.
+
+G20's replay rule only excludes the `mutations/` path, and `format-patch` carries commit messages and the DECISIONS/ENV hunks as written. So excluding the path is not enough. Before the next push, define the redaction concretely: replay these commits as redacted, generic commits (message and hunks), as G20 already intends for the mirror copies of ENV and G19. Then run the C7 grep for the guard names on the **generated patch files** and require zero hits. Do not rely on the main-repo text, and never rewrite main-repo history.
+
+### Medium — before the cell they guard
+- **M8. A8 is designed but not implemented.** Implement the empty or non-integer count → INVALID rule in the shared helper, and show it in a commit **before** the first INV-G5 or INV-G6 cell.
+- **M9. "pin-before-cell" cells.** Each such (invariant × gateway) row must be completed in the A-table with its guard source evidence, mutation, observable and signature, and committed **before** that pair's first cell. A row that is still pinned-before-cell when its cell runs makes that cell post-hoc and therefore not counted.
+- **M10. Scope of the download approval.** G19's approval quote covers "these C2 rebuilds". Further mutation builds (one-api, Sub2API for other invariants, and the S2 control builds) reuse the same Go source. Confirm with the user that the approval extends to them, or ask, before building.
+
+### Low
+- **L12.** G19 and the README claim the mutation "differs by exactly one guard". Reword this to "one guard plus rebuild provenance", controlled by S2.
+
+### Summary
+A1–A8 resolve Review 3's catalogue items as designed. Phase 3 is cleared once S1–S3 are fixed and M8–M10 are recorded, plus the user's explicit go. A short re-check is enough; no new design review is needed.
