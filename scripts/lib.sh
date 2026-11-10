@@ -33,4 +33,15 @@ digest_of() { pins | awk -F'\t' -v k="$1" '$1==k{print $2}'; }
 # Usage: drv <net> <curl-args...>   -> curl stdout on host stdout
 drv() { local net="$1"; shift; docker run --rm --network "$net" "$DRIVER_IMG" "$@"; }
 
+# --- A8 (review 5 L10 / review 6 M8): mock-journal counts must be non-empty integers ---
+# A journal observable (e.g. INV-G5/INV-G6 before/after upstream-fetch counts) maps the cell to
+# INVALID when a count is empty or non-integer — it is NEVER defaulted to 0, which could turn a
+# refused leg into a spurious PASS with the journal never actually observed. Every journal-based
+# cell must use these before deciding a verdict.
+# jint: succeed iff $1 is a non-empty string of digits.
+jint() { case "$1" in ''|*[!0-9]*) return 1;; *) return 0;; esac; }
+# journal_delta <before> <after>: echo (after-before) iff both are non-empty integers; else return 1
+# (the cell must then record INVALID, not compute a delta from a defaulted 0).
+journal_delta() { jint "$1" && jint "$2" || return 1; echo $(( $2 - $1 )); }
+
 require_docker

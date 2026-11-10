@@ -414,9 +414,20 @@ and DECISIONS G19, kept out of the public mirror per G20); this file stays gener
 - **A8 — 2026-11-10 — review-5 L10: empty/non-integer journal count → INVALID.** In every **journal-based**
   cell (**INV-G5**, **INV-G6**, and any cell whose observable is a mock-journal count), an **empty or
   non-integer** count maps to **INVALID** — it is never defaulted to 0 (which could turn a refused leg into a
-  spurious PASS with the journal never observed). To be enforced in the shared helper **before** the first
-  Phase-3 journal cell (the R5 G18J cell verified its counts were non-empty integers on both rungs by hand;
-  this makes it structural).
+  spurious PASS with the journal never observed). **Enforced in the shared helper** `scripts/lib.sh`
+  (`jint` / `journal_delta`, review 6 M8): `journal_delta` returns the delta only when both counts are
+  non-empty integers, else the cell records INVALID. Every journal-based cell uses it before deciding a verdict
+  (the R5 G18J cell verified its counts by hand; this makes it structural for the Phase-3 cells).
+
+- **A9 — 2026-11-10 — review 6 S1 + M9: target-independent sanity, pinned and complete before each cell.**
+  (S1) The admission **sanity** build is **target-independent** — a pinned build whose guard is shown present
+  from source, never the current (verdict) build. Concrete, source-confirmed, no Go build: **INV-G1 →
+  `calciumion/new-api:v1.0.0-rc.23`**, **INV-G6 → `weishaw/sub2api:0.1.169`** (the R6 fixed recall image); the
+  A-table carries these and `env/sanity-build-evidence.md` the evidence + digests. (M9) **Completeness gate:**
+  every **pin-before-cell** A-table row (its sanity build, mutation, observable, route and signature) must be
+  **fully specified, source-pinned and committed before that (invariant × gateway) pair's first current-release
+  cell**. A cell run against an A-table row that is still `pin-before-cell` is **inadmissible** (not a
+  pass/fail). This holds the admission table complete per pair ahead of any Phase-3 run.
 
 ### A-table — per-(invariant × gateway) admission (frozen pre-Phase-3; **design only, no results**)
 
@@ -429,12 +440,12 @@ of A1/A2/A4); none runs until Phase 3 is cleared.
 
 | Inv | Gateways (applies) | Sanity (target-independent) | Mutation (admission FAIL leg) | Observable / route / signature |
 |---|---|---|---|---|
-| G1 | new-api, LiteLLM, one-api, Sub2API | recall fixed image where a scope guard is present; else a pinned build with the guard shown in source | **Go rebuild** with the key/token scope-authorization guard removed (new-api: built, `mutations/`; LiteLLM/one-api/Sub2API: pin-before-cell) | child credential reaches an out-of-grant route/model (2xx the creator cannot); PASS = refused with the scope-check signature |
+| G1 | new-api, LiteLLM, one-api, Sub2API | **target-independent** (S1): new-api = earlier official release **`v1.0.0-rc.23`** (scope guard present + used, source-confirmed, byte-identical to rc.48, absent ≤ rc.22; `env/sanity-build-evidence.md`); LiteLLM/one-api/Sub2API = pin-before-cell guard-present build | **Go rebuild** with the key/token scope-authorization guard removed (new-api: built, `mutations/`; LiteLLM/one-api/Sub2API: pin-before-cell) | child credential reaches an out-of-grant route/model (2xx the creator cannot); PASS = refused with the scope-check signature |
 | G2 | LiteLLM, new-api, one-api, Sub2API | **recall fixed image** (R2 fixed) for LiteLLM; per-gateway fixed/guarded build elsewhere (pin-before-cell) | recall **affected** image (R2) for LiteLLM; config/build removal of the self-role field-guard elsewhere | re-read of the self-updated record shows the elevated attribute; PASS = field-guard refusal + unchanged on re-read |
 | G3 | new-api, one-api, LiteLLM, Sub2API | **recall fixed image** (R3 fixed) for new-api; guarded build elsewhere (pin-before-cell) | recall **affected** image (R3) for new-api; build/config removal of the saturating bound elsewhere | billed call with out-of-range quantity → **balance** (quota on new-api/one-api; **budget/spend** on LiteLLM/Sub2API, A4) strictly increased; PASS = refused or balance-after ≤ before |
 | G4 | new-api, one-api, LiteLLM, Sub2API | **recall fixed image** (R4 fixed) for new-api; guarded build elsewhere (pin-before-cell) | recall **affected** image (R4) for new-api; build removal of the serialization redaction elsewhere | lower role's listing exposes a higher role's non-empty secret field (per-gateway field, A4); PASS = present but absent/empty |
 | G5 | new-api, one-api, LiteLLM, Sub2API | **recall fixed image** (R5 fixed) for new-api; guarded build elsewhere (pin-before-cell); one-api CVE-2026-81027 maps here (A5) | recall **affected** image (R5) for new-api; build removal of owner-scoping elsewhere | tenant B receives tenant A's resource by A's id (+journal fetch for B where upstream); PASS = refused/404 owner-scoped + no journal fetch (A8) |
-| G6 | Sub2API, LiteLLM, new-api | pinned build with the upstream path-confinement guard present (Sub2API: the current release) | **Go rebuild** with the path-confinement guard removed (Sub2API: built, `mutations/`; LiteLLM/new-api: pin-before-cell) | mock journal records an upstream path escaping the operator prefix with operator creds; PASS = refused/under-prefix (A8) |
+| G6 | Sub2API, LiteLLM, new-api | **target-independent** (S1): Sub2API = the R6 **fixed** recall image **`0.1.169`** (path-confinement guard present, source-confirmed, absent at 0.1.168; NOT the current `0.2.20`); LiteLLM/new-api = pin-before-cell guard-present build | **Go rebuild** with the path-confinement guard removed (Sub2API: built, `mutations/`; LiteLLM/new-api: pin-before-cell) | mock journal records an upstream path escaping the operator prefix with operator creds; PASS = refused/under-prefix (A8) |
 | G7 | *(exploratory, A3)* | n/a until grounded per gateway (A3) | n/a until a documented tool/scope guard is named (A3) | forbidden tool/model invoked via translation (journal); **not counted** unless grounded (A3) |
 
 Reachability caveat (A2): for **G1** and **G6** the verdict cell must first show the probed path is reachable on
