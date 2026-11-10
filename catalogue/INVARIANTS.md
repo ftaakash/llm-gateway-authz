@@ -419,6 +419,20 @@ and DECISIONS G19, kept out of the public mirror per G20); this file stays gener
   non-empty integers, else the cell records INVALID. Every journal-based cell uses it before deciding a verdict
   (the R5 G18J cell verified its counts by hand; this makes it structural for the Phase-3 cells).
 
+- **A10 — 2026-11-10 — review 7: rebuild-mutation gating + sanity-leg existence check.** (1) **Rebuild-mutation
+  cells are not admitted until the S2 control exists.** Any cell whose mutation is a **rebuilt** image (INV-G1 on
+  new-api, INV-G6 on Sub2API, and any future rebuild) is recorded **"admission not established"** — never a
+  verdict — until the **S2 no-op rebuild control** holds (an **unpatched** rebuild of the same current-release
+  source matches the pristine image on the cell's positive control); S2 depends on **M10** (the user's Go-download
+  confirmation) and is **not built**. Cells whose admission uses **official images only** (the **G2–G5** rows on
+  their recall gateway: recall **fixed** image = sanity, recall **affected** image = mutation) are **cleared for
+  Phase 3 with the user's go** and do not wait on S2. (2) **Sanity-leg existence check.** The target-independent
+  sanity images (rc.23, 0.1.169) differ from the verdict release **beyond the guard**; **before each sanity leg**,
+  confirm the A-table **route, principals and observable exist on that sanity build**, else the leg is **INVALID**
+  (not PASS). (3) **Never swap the sanity build after a result** (that would be post-hoc). Review 7 independently
+  re-verified S1 on the tag objects (G1 guard absent rc.22 / present + byte-identical rc.23 = rc.48; G6 guard
+  absent 0.1.168 / present 0.1.169 & 0.2.20).
+
 - **A9 — 2026-11-10 — review 6 S1 + M9: target-independent sanity, pinned and complete before each cell.**
   (S1) The admission **sanity** build is **target-independent** — a pinned build whose guard is shown present
   from source, never the current (verdict) build. Concrete, source-confirmed, no Go build: **INV-G1 →
