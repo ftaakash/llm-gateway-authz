@@ -105,3 +105,26 @@ set in `scripts/lib.sh`). Nothing was executed from them. **Docker's disk image 
 `D:\DockerData`**, so all image pulls and the 15 gateway images already pulled now live on D:; C: is not
 used for pilot-10 artefacts. Any further download (e.g. `redis:7.4.1-alpine`, still needed for R6) lands on
 D: and is gated on C: free ≥ 40 GB first.
+
+## C2 mutation builds (G19; labelled TEST-ONLY, never a verdict/sanity build)
+
+Built 2026-11-10 for the two invariants whose recall advisories were INVALID with mocks
+(INV-G1 new-api, INV-G6 Sub2API): a labelled test-only rebuild of the current-release backend with the
+relevant guard removed, used only for the admission FAIL leg. The guard-removed binaries/images are
+**never published** (the build recipe is kept in the main repo only, per G20); this mirror records only the
+pinned, generic build inputs. Downloads (the pinned `golang` base images + the projects' Go modules) happened
+only in the build step and are logged above; all on D:, C: stayed ≥ 40 GB; no frontend dependencies fetched.
+
+| Role | Image | Digest | Go base |
+|---|---|---|---|
+| Build base (new-api) | `golang:1.26.10-alpine` | `sha256:87c65a688975c0b1d4585d204874c45ca78354670e3a5f11368c5a492303d696` | Go 1.26.10 |
+| Build base (Sub2API) | `golang:1.27.3-alpine` | `sha256:fa3d596898d9f126af7c01d14ee7597bab3f39cccf392ef36b69fe77cd681f18` | Go 1.27.3 |
+| Verdict / pristine (new-api) | `calciumion/new-api:v1.0.0-rc.48` | `sha256:51401a46510bf110ffafdf2cd7177e0b80bbcf02439e69b665c696f330e87ae5` | — |
+| Verdict / pristine (Sub2API) | `weishaw/sub2api:0.2.20` | `sha256:ebdd50dda32e7a30c840de884d29dd7cbe52776d34fe2899733535f16a0b2813` | — |
+
+**Target-independent sanity builds (review 6 S1; official images, source-confirmed guard present):**
+INV-G1 → `calciumion/new-api:v1.0.0-rc.23` (`sha256:bacbbfbed64b4579213316e0ed78415985223bb20c47fbc24572dd7be5aa1695`);
+INV-G6 → `weishaw/sub2api:0.1.169` (`sha256:c9ee04bc92f916c9fce269c23e01bbde4ca6aee190e99221114224e37aa91ed9`, the R6 fixed recall image).
+Admission = sanity PASS (rc.23 / 0.1.169) + mutation FAIL (guard-removed rebuild of the current release); the
+pristine current image is the verdict leg. The mutation differs from the pristine current image by one guard
+**plus rebuild provenance** (L12), controlled by the S2 no-op rebuild control. The admission **run** is Phase 3.
