@@ -5,7 +5,7 @@
 **Regression-testing authorization & metering invariants in open-source LLM gateways,<br>using already-patched CVEs as a correctness oracle.**
 
 ![recall](https://img.shields.io/badge/recall%20(kill%20condition%203)-4%2F6%20passed-success)
-![phase2](https://img.shields.io/badge/phase%202%20invariant%20catalogue-in%20progress-yellow)
+![phase3](https://img.shields.io/badge/phase%203-cleared%20in%20part%2C%20not%20run-yellow)
 ![scope](https://img.shields.io/badge/scope-local%20testbed%20only-blue)
 ![output](https://img.shields.io/badge/output-pass%2Ffail%20only-lightgrey)
 ![providers](https://img.shields.io/badge/model%20providers-mocked%2C%20no%20egress-blue)
@@ -81,13 +81,15 @@ the novelty gate is not re-opened (logged in [env/kc4-novelty-check.md](env/kc4-
 ## Status
 
 - **Recall half — complete, PASSES 4/6** (above).
-- **Phase 2 — invariant catalogue freeze: in progress.** A gateway-general catalogue of authorization/metering
-  invariants (scope non-escalation, no self-elevation, metering monotonicity, role-boundary credential
-  exposure, resource ownership, upstream-routing confinement, tool-call translation integrity), each admitted
-  only when it PASSes a sanity configuration and FAILs a mutation configuration — the same admission rule as the
-  recall oracle.
-- **New-violation half — not started.** The run against **current releases** is pending the catalogue re-review
-  and the author's go. Any new (undisclosed) finding on a current release is kept **out of this
+- **Phase 2 — invariant catalogue: frozen and amended (reviews 3–7).** A gateway-general catalogue of
+  authorization/metering invariants (scope non-escalation, no self-elevation, metering monotonicity,
+  role-boundary credential exposure, resource ownership, upstream-routing confinement, tool-call translation
+  integrity), each admitted only when it PASSes a target-independent sanity build and FAILs a mutation build —
+  the same admission rule as the recall oracle. Source-rebuilt mutation builds also need a no-op rebuild
+  control; that step is complete and under review (review 8: admission not yet established for every rebuilt pair).
+- **New-violation half (Phase 3) — cleared in part, not yet run** (as of 2026-11-12). Cells admitted from
+  official images only are cleared (review 7); rebuilt cells join once their admission is established. A run
+  that does not cover ≥3 gateways is reported as **incomplete**, never as "0 violations". Any new (undisclosed) finding on a current release is kept **out of this
   repository entirely**, under coordinated disclosure; this public repo carries only recall results on
   already-patched, public advisories.
 
