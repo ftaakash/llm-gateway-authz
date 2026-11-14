@@ -124,7 +124,7 @@ only in the build step and are logged above; all on D:, C: stayed ≥ 40 GB; no 
 
 **Target-independent sanity builds (review 6 S1; official images, source-confirmed guard present):**
 INV-G1 → `calciumion/new-api:v1.0.0-rc.23` (`sha256:bacbbfbed64b4579213316e0ed78415985223bb20c47fbc24572dd7be5aa1695`);
-INV-G6 → `weishaw/sub2api:0.1.169` (`sha256:c9ee04bc92f916c9fce269c23e01bbde4ca6aee190e99221114224e37aa91ed9`, the R6 fixed recall image).
-Admission = sanity PASS (rc.23 / 0.1.169) + mutation FAIL (guard-removed rebuild of the current release); the
+INV-G6 → `weishaw/sub2api:0.1.178` (`sha256:e0f019383025679bd3b0f912c21fe7d8afdba8e42613391fa7fa208cc0762e60`, amended from `0.1.169` by G26: the earliest release whose source shows both the upstream path-confinement guard present and the group-platform setting accepting the vendor the cell provisions).
+Admission = sanity PASS (rc.23 / 0.1.178) + mutation FAIL (guard-removed rebuild of the current release); the
 pristine current image is the verdict leg. The mutation differs from the pristine current image by one guard
 **plus rebuild provenance** (L12), controlled by the S2 no-op rebuild control. The admission **run** is Phase 3.
