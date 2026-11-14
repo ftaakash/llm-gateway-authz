@@ -1,0 +1,11 @@
+ts,control,sent_request_target,journaled_target,op_key_recorded,journaled_status,result
+2026-11-13T15:12:10Z,decoded_dotsegment_journaled_verbatim,/responses/../../<marker>,recorded_verbatim,yes,200,PASS
+# Mock-only control (review 8): the raw request-line observer (testbed/observer/observer.go) must journal a
+# DECODED dot-segment upstream path verbatim — the form a gateway actually emits on the wire (c.Request.URL.Path
+# is percent-decoded, so %2f becomes a literal '/', and the gateway re-splices literal '..' segments). WireMock's
+# Jetty rejects such an ambiguous '..' request target at the HTTP parser (400 Bad Message) before journaling, so it
+# cannot observe this form; the earlier env/r6-mockjournal-control.csv (H4) proved journaling only of the ENCODED
+# '..%2f' form and does not cover it. This control sends a literal POST /responses/../../<marker> with the operator
+# dummy key straight to the observer; the observer records the target byte-for-byte ('../..' intact) and flags the
+# operator key. PASS => the observer can capture the INV-G6 FAIL frozen signature (journal records the escaping
+# path carrying the operator key). Generic testbed control, not a current-release result.
