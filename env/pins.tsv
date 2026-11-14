@@ -17,6 +17,12 @@ calciumion/new-api:v1.0.0-rc.18	sha256:d75ca98ee8b04fcc4cbdc0aad98bb6327280c402c
 # --- Sub2API recall rungs (Docker Hub) ---
 weishaw/sub2api:0.1.168	sha256:85d29bfc69fa7a314cd2a35420dbe2faa6251ccbb3c3d1d4c56c732270e87479
 weishaw/sub2api:0.1.169	sha256:c9ee04bc92f916c9fce269c23e01bbde4ca6aee190e99221114224e37aa91ed9
+weishaw/sub2api:0.1.178	sha256:e0f019383025679bd3b0f912c21fe7d8afdba8e42613391fa7fa208cc0762e60	# INV-G6 sanity (G26, 2026-11-14)
+# --- current-release verdict targets + rc.23 sanity (digests from ENV.md; added for the Phase-3 runner, L15) ---
+ghcr.io/berriai/litellm:v1.108.2	sha256:d8b4ac356743d647a13bb93f45b941fcd5f5354122cfd205948a1b192790389d
+calciumion/new-api:v1.0.0-rc.48	sha256:51401a46510bf110ffafdf2cd7177e0b80bbcf02439e69b665c696f330e87ae5
+calciumion/new-api:v1.0.0-rc.23	sha256:bacbbfbed64b4579213316e0ed78415985223bb20c47fbc24572dd7be5aa1695
+weishaw/sub2api:0.2.20	sha256:ebdd50dda32e7a30c840de884d29dd7cbe52776d34fe2899733535f16a0b2813
 # --- supporting ---
 library/postgres:16.4-alpine	sha256:5660c2cbfea50c7a9127d17dc4e48543eedd3d7a41a595a2dfa572471e37e64c
 library/redis:7.4.1-alpine	sha256:c1e88455c85225310bbea54816e9c3f4b5295815e6dbf80c34d40afc6df28275
