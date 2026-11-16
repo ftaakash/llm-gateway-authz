@@ -9,3 +9,9 @@ ts,role,image_ref,present,resolved_id
 # counting-run step does no network. All 5 present 2026-11-14T13:10:19Z; none pulled. Mutation/no-op images are local-only
 # by design (built, never pulled). Immediately before the single counting run, re-run this check and
 # append a dated row; if any image is MISSING, pull it in that pre-run step and log it in ENV.md's pull log.
+2026-11-15T21:46:48Z,litellm_verdict,ghcr.io/berriai/litellm:v1.108.2@sha256:d8b4ac356743d647a13bb93f45b941fcd5f5354122cfd205948a1b192790389d,yes,sha256:d8b4ac356743d647a13bb93f45b941fcd5f5354122cfd205948a1b192790389d
+2026-11-15T21:46:48Z,sub2api_verdict,weishaw/sub2api:0.2.20@sha256:ebdd50dda32e7a30c840de884d29dd7cbe52776d34fe2899733535f16a0b2813,yes,sha256:ebdd50dda32e7a30c840de884d29dd7cbe52776d34fe2899733535f16a0b2813
+2026-11-15T21:46:48Z,sub2api_sanity,weishaw/sub2api:0.1.178@sha256:e0f019383025679bd3b0f912c21fe7d8afdba8e42613391fa7fa208cc0762e60,yes,sha256:e0f019383025679bd3b0f912c21fe7d8afdba8e42613391fa7fa208cc0762e60
+2026-11-15T21:46:48Z,newapi_sanity,calciumion/new-api:v1.0.0-rc.23@sha256:bacbbfbed64b4579213316e0ed78415985223bb20c47fbc24572dd7be5aa1695,yes,sha256:bacbbfbed64b4579213316e0ed78415985223bb20c47fbc24572dd7be5aa1695
+2026-11-15T21:46:48Z,newapi_verdict,calciumion/new-api:v1.0.0-rc.48@sha256:51401a46510bf110ffafdf2cd7177e0b80bbcf02439e69b665c696f330e87ae5,yes,sha256:51401a46510bf110ffafdf2cd7177e0b80bbcf02439e69b665c696f330e87ae5
+# 2026-11-15T21:46:48Z pre-COUNTING-RUN presence check: every digest-pinned image the run touches verified PRESENT (runner images + supporting services); none pulled.
